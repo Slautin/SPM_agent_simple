@@ -1,0 +1,11 @@
+README.md
+pyproject.toml
+src/spm_agent/__init__.py
+src/spm_agent/config.py
+src/spm_agent.egg-info/PKG-INFO
+src/spm_agent.egg-info/SOURCES.txt
+src/spm_agent.egg-info/dependency_links.txt
+src/spm_agent.egg-info/requires.txt
+src/spm_agent.egg-info/top_level.txt
+src/spm_agent/mcp/__init__.py
+src/spm_agent/mcp/scifireaders_client.py
