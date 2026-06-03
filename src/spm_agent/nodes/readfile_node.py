@@ -22,7 +22,9 @@ async def readfile_node(state: ImageAnalysisState) -> ImageAnalysisState:
         file_path,
     )
 
-    payload_dict = json.loads(payload.content[0].text) # type: ignore
+
+
+    payload_dict = payload['result']#json.loads(payload.content[0].text) # type: ignore
 
     #create dict
     for k in payload_dict['datasets']:

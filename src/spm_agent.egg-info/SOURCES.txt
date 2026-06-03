@@ -8,4 +8,16 @@ src/spm_agent.egg-info/dependency_links.txt
 src/spm_agent.egg-info/requires.txt
 src/spm_agent.egg-info/top_level.txt
 src/spm_agent/mcp/__init__.py
-src/spm_agent/mcp/scifireaders_client.py
+src/spm_agent/mcp/scifireaders_service.py
+src/spm_agent/nodes/__init__.py
+src/spm_agent/nodes/channel_recommendation_node.py
+src/spm_agent/nodes/readfile_node.py
+src/spm_agent/prompts/__init__.py
+src/spm_agent/prompts/channel_recommendation_prompts.py
+src/spm_agent/schemas/__init__.py
+src/spm_agent/schemas/channel_recommendation.py
+src/spm_agent/states/__init__.py
+src/spm_agent/states/image_analysis_state.py
+src/spm_agent/utils/__init__.py
+src/spm_agent/utils/channel_utils.py
+src/spm_agent/utils/image_utils.py
