@@ -1,5 +1,9 @@
 from spm_agent.states.image_analysis_state import Channel
 from spm_agent.utils.image_utils import image_path_to_data_url
+from spm_agent.config import CASHE_DIR
+
+import os
+import numpy as np
 
 def channel_to_text_block(channel_id: str, channel: Channel) -> dict:
     stats = channel.get("stats", "")
@@ -30,3 +34,27 @@ def channel_to_image_block(channel: Channel) -> dict:
             'url': image_url
             }
     }
+
+def save_array(channel) -> dict:
+    """Cashe RAW channel array for later analysis on image segmentation"""
+
+    CASHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    title = channel['title']
+    arr_path = os.path.join(CASHE_DIR, f'{title}.npy')
+
+    data = np.asarray(channel['data'], dtype=np.float32)
+    try:
+        np.save(arr_path, data)
+        return {"ok": True, "path": str(arr_path), "error": None}
+    except Exception as exc:
+        return {"ok": False, "path": str(arr_path), "error": str(exc)}
+
+
+def load_array(path: str) -> np.ndarray:
+    """Load a cached raw channel array."""
+    return np.load(path)
+
+    
+
+

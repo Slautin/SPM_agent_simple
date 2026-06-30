@@ -11,12 +11,12 @@ CHANNEL_RECOMMENDATION_SYSTEM_PROMPT = (
         "channel metadata, basic channel statistics, and preview images.\n\n"
 
         "Recommend channels only for the following roles:\n"
-        "1. ferroelectric_domain_segmentation\n"
-        "2. ferroelectric_domain_wall_segmentation\n"
-        "3. grain_boundary_segmentation\n"
-        "4. crack_scratch_detection\n"
-        "5. surface_contamination_identification\n"
-        "6. topography_artifact_check\n\n"
+        "1. ferroelectric domain segmentation\n"
+        "2. ferroelectric domain wall segmentation\n"
+        "3. grain boundary segmentation\n"
+        "4. crack scratch detection\n"
+        "5. surface contamination identification\n"
+        "6. topography artifact check\n\n"
 
         "Rules:\n"
         "- Use only channels provided in the input.\n"

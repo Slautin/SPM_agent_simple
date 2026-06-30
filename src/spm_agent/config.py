@@ -16,8 +16,8 @@ SCIFIREADERS_MCP_COMMAND = str(_scifi_cmd)
 #spm_mcp configuration
 SPM_MCP_SERVER_CONFIG = {
         "spm": {
-            "transport": "http",
-            "url": "http://localhost:8766/mcp",
+            "transport": "streamable-http",
+            "url": "http://10.128.35.95:8000/mcp",
         },
     }
 
@@ -26,3 +26,12 @@ CASHE_DIR = (
     PROJECT_ROOT / "src" / "spm_agent" / ".cashe" / "current"
 )
 
+#segmentation config
+
+SEG_DIR = Path("./seg_proto").resolve()
+SEG_DIR.mkdir(parents=True, exist_ok=True)
+
+SEG_MODEL = "claude-sonnet-4-6"
+SEG_MAX_TOKENS = 2048
+SEG_VISION_IN_LOOP = True
+SEG_MAX_SUPERSTEPS = 30
