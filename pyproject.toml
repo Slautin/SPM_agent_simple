@@ -9,6 +9,7 @@ requires-python = ">=3.10"
 dependencies = [
     "langgraph",
     "langchain-openai",
+    "langchain-anthropic",
     "langchain-mcp-adapters",
     "python-dotenv",
     "scifireaders[mcp]",

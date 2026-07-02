@@ -2,12 +2,12 @@ from pydantic import BaseModel, Field
 from typing_extensions import Literal
 
 AnalysisTask = Literal[
-    "ferroelectric_domain_segmentation",
-    "ferroelectric_domain_wall_segmentation",
-    "grain_boundary_segmentation",
-    "crack_scratch_detection",
-    "surface_contamination_detection",
-    "scanning_artifact_identification"
+    "ferroelectric domain segmentation",
+    "ferroelectric domain wall segmentation",
+    "grain boundary segmentation",
+    "crack scratch detection",
+    "surface contamination detection",
+    "scanning artifact identification"
 ]
 
 class SingleTaskChannelReccomendation(BaseModel):

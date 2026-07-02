@@ -1,5 +1,6 @@
 langgraph
 langchain-openai
+langchain-anthropic
 langchain-mcp-adapters
 python-dotenv
 scifireaders[mcp]
