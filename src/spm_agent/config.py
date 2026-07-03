@@ -26,7 +26,7 @@ CASHE_DIR = (
     PROJECT_ROOT / "src" / "spm_agent" / ".cashe" / "current"
 )
 
-#segmentation config
+#segmentation/importance config
 
 SEG_DIR = Path("./seg_proto").resolve()
 SEG_DIR.mkdir(parents=True, exist_ok=True)
@@ -34,4 +34,12 @@ SEG_DIR.mkdir(parents=True, exist_ok=True)
 SEG_MODEL = "claude-sonnet-4-6"
 SEG_MAX_TOKENS = 2048
 SEG_VISION_IN_LOOP = True
-SEG_MAX_SUPERSTEPS = 30
+SEG_MAX_SUPERSTEPS = 30 #for the importance map: SEG_MAX_SUPERSTEPSx2 
+
+
+#sandbox
+from spm_agent.sandbox import sandbox_python
+
+SANDBOX_PY = str(sandbox_python())
+
+IMPORTANCE_DIR = CASHE_DIR.parent / "importance"

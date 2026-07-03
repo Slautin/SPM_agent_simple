@@ -1,0 +1,6 @@
+# Isolated sandbox deps for LLM-generated image analysis code.
+# NO spm_agent, NO network/HTTP libs.
+numpy
+scipy
+scikit-image
+matplotlib

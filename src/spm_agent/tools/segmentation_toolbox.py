@@ -133,7 +133,7 @@ def build_segmentation_tools(session: SegSession, vision_in_loop: bool) -> list:
     @tool
     def reset_working_image() -> dict:
         """Restore the working image from raw and clear the mask."""
-        session.work = np.nan_to_num(_norm01(session.raw), nan=0.0)        # CHANGED
+        session.work = np.nan_to_num(norm01(session.raw), nan=0.0)        # CHANGED
         session.mask = np.zeros_like(session.mask)
         session.ops.append({"op": "reset"})
         return {"ok": True}

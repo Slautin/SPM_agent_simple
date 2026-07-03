@@ -7,6 +7,8 @@ from spm_agent.prompts.scan_segmentation_prompts import build_segmentation_human
 
 from langchain_anthropic import ChatAnthropic
 from langchain.agents import create_agent
+
+
 async def agentic_segmentation_node(state: ImageAnalysisState) -> ImageAnalysisState:
     recs     = state["channel_recommendations"]["task_recommendation"] # pyright: ignore[reportTypedDictNotRequiredAccess]
     channels = state["file_channels"]  # type: ignore
@@ -16,7 +18,7 @@ async def agentic_segmentation_node(state: ImageAnalysisState) -> ImageAnalysisS
                             max_tokens=SEG_MAX_TOKENS) # type: ignore
     
     results = {}
-    for rec in recs[:2]:
+    for rec in recs[:2]:   #CHANGE IT LATER!!!
         if not rec["feasible"] or rec["primary_channel"] not in channels:
             continue
         task, channel_id = rec["task"], rec["primary_channel"]
