@@ -27,9 +27,16 @@ class SegmentationResult(TypedDict):
     ops: list                 # ordered tool log = the reproducible "program"
     reasoning: str            # agent's final justification
 
+class ImportanceMapResult(TypedDict):
+    experiment_task: str            # free-form goal — lives HERE, per your point
+    importance_map_path: str        # .npy, pixel grid
+    scoring_code_path: str
+    reasoning: str
+
 class ImageAnalysisState(TypedDict):
     file_path: str
     file_channels: NotRequired[dict[str, Channel]]
     channel_recommendations: NotRequired[dict]
-    segmentation_results: NotRequired[dict[str, SegmentationResult]] 
-    pass
+    segmentation_results: NotRequired[dict[str, SegmentationResult]]
+    experiment_tasks: NotRequired[list[ImportanceMapResult]] 
+    importance_maps: NotRequired[list[ImportanceMapResult]] 

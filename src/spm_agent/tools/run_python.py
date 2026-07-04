@@ -2,14 +2,18 @@
 import base64, subprocess
 from pathlib import Path
 from langchain_core.tools import tool
+import shutil
 
 
 class LocalBackend:
     """Run ONE code cell in the isolated interpreter, in a persistent workdir.
     Fresh process each call (state carried via files). Returns stdout + new PNGs."""
 
-    def __init__(self, workdir: Path, python_exe: str, timeout: int = 30):
+    def __init__(self, workdir: Path, python_exe: str, timeout: int = 30, archive_dir=None):
         self.wd, self.py, self.timeout = Path(workdir), str(python_exe), timeout
+        self.archive_dir = Path(archive_dir) if archive_dir else None
+        self._step = 0
+
 
     def execute(self, code: str) -> dict:
         (self.wd / "cell.py").write_text(code)                  # 1. write the model's code
@@ -21,6 +25,11 @@ class LocalBackend:
         except subprocess.TimeoutExpired:
             out = f"ERROR: exceeded {self.timeout}s, killed."
         new = sorted(set(self.wd.glob("*.png")) - before)       # 3. figures it just saved
+        if self.archive_dir is not None:                      # NEW: keep every figure
+            self.archive_dir.mkdir(parents=True, exist_ok=True)
+            for f in new:
+                shutil.copy(f, self.archive_dir / f"step{self._step:02d}_{f.name}")
+        self._step += 1
         images = [base64.b64encode(f.read_bytes()).decode() for f in new]
         return {"stdout": out or "(no output)", "images": images}
 
