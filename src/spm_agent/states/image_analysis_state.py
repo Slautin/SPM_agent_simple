@@ -1,5 +1,10 @@
 from typing_extensions import TypedDict, NotRequired
+from typing import Literal
 
+from spm_agent.schemas.loops_params import LoopParams
+
+
+#channels schemes
 class ChannelStats(TypedDict):
     min: float
     max: float
@@ -17,6 +22,7 @@ class Channel(TypedDict):
     array_path: str
     stats: ChannelStats
 
+#scan schemes
 class SegmentationResult(TypedDict):
     task: str                 # joins back to channel_recommendations
     channel: str              # channel ID the agent worked on
@@ -33,10 +39,34 @@ class ImportanceMapResult(TypedDict):
     scoring_code_path: str
     reasoning: str
 
-class ImageAnalysisState(TypedDict):
+#loop schemes
+class LoopChannel(TypedDict):
+    on_path: str          # .npy, in-field response
+    off_path: str         # .npy, out-of-field response
+    units: str
+    n_points: int
+
+class LoopData(TypedDict):
+    bias_on_path: str     # x-axis for in-field loops
+    bias_off_path: str    # x-axis for out-of-field loops (= preceding pulse)
+    loops: dict[str, LoopChannel]
+    overview_path: str    # .png for vision review
+    n_pulses: int
+
+#main analysis state
+
+class AnalysisState(TypedDict):
     file_path: str
     file_channels: NotRequired[dict[str, Channel]]
+    kind: NotRequired[Literal["spectrum", "loop", "image"]]
+
+    #scan branch
     channel_recommendations: NotRequired[dict]
     segmentation_results: NotRequired[dict[str, SegmentationResult]]
-    experiment_tasks: NotRequired[list[ImportanceMapResult]] 
+    experiment_tasks: NotRequired[list[str]] 
     importance_maps: NotRequired[list[ImportanceMapResult]] 
+
+    #loop branch
+    loops: NotRequired[LoopData]
+    loop_params: NotRequired[dict[str, LoopParams]] 
+    

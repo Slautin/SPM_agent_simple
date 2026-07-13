@@ -1,4 +1,4 @@
-from spm_agent.states.image_analysis_state import ImageAnalysisState
+from spm_agent.states.image_analysis_state import AnalysisState 
 from spm_agent.config import SEG_MODEL, SEG_MAX_TOKENS, SEG_VISION_IN_LOOP, SEG_DIR, SEG_MAX_SUPERSTEPS
 from spm_agent.tools.segmentation_toolbox import SegSession, build_segmentation_tools
 from spm_agent.utils.channel_utils import load_array
@@ -9,7 +9,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain.agents import create_agent
 
 
-async def agentic_segmentation_node(state: ImageAnalysisState) -> ImageAnalysisState:
+async def agentic_segmentation_node(state: AnalysisState) -> AnalysisState:
     recs     = state["channel_recommendations"]["task_recommendation"] # pyright: ignore[reportTypedDictNotRequiredAccess]
     channels = state["file_channels"]  # type: ignore
 

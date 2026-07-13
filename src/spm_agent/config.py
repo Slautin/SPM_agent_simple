@@ -43,3 +43,5 @@ from spm_agent.sandbox import sandbox_python
 SANDBOX_PY = str(sandbox_python())
 
 IMPORTANCE_DIR = CASHE_DIR.parent / "importance"
+
+LOOPS_DIR = CASHE_DIR.parent / "loops" 

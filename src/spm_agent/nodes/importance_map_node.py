@@ -3,7 +3,7 @@ from spm_agent.tools.run_python import make_run_python, LocalBackend, extract_ru
 from spm_agent.utils.message_utils import flatten_text
 from spm_agent.config import SANDBOX_PY, SEG_MODEL, SEG_MAX_TOKENS, SEG_MAX_SUPERSTEPS
 from spm_agent.prompts.importance_map_prompts import build_importance_human_message, build_importance_system_message
-from spm_agent.states.image_analysis_state import ImageAnalysisState
+from spm_agent.states.image_analysis_state import AnalysisState
 
 from langchain_anthropic import ChatAnthropic
 from langchain.agents import create_agent
@@ -18,7 +18,7 @@ def _make_workdir() -> Path:
     wd.mkdir(parents=True, exist_ok=True)
     return wd
 
-async def importance_map_node(state: ImageAnalysisState) -> ImageAnalysisState:
+async def importance_map_node(state: AnalysisState) -> AnalysisState:
     tasks    = state.get("experiment_tasks", [])
     channels = state["file_channels"]           # type: ignore
     seg      = state["segmentation_results"]     # type: ignore
