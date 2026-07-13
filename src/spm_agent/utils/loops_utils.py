@@ -208,8 +208,8 @@ def extract_loop_params(bias, x, y=None, rotate=True, grid_n=201,
     sat_at_vplus = float(np.nanmean(np.concatenate([x_rise[hi], x_fall[hi]])))
     sat_at_vminus = float(np.nanmean(np.concatenate([x_rise[lo], x_fall[lo]])))
     v_offset = 0.5 * (sat_at_vplus + sat_at_vminus)
-    out.update(sat_at_vplus=sat_at_vplus, sat_at_vminus=sat_at_vminus,
-               response_offset=float(v_offset))
+    out.update(sat_at_vplus_m=sat_at_vplus, sat_at_vminus_m=sat_at_vminus,
+               response_offset_m=float(v_offset))
 
     # 4) coercive voltages: steepest zero crossing per branch
     def crossing(xb):
@@ -231,8 +231,9 @@ def extract_loop_params(bias, x, y=None, rotate=True, grid_n=201,
     # 5) remnant response: branch values at V = 0
     r_rise = float(np.interp(0.0, grid, x_rise))
     r_fall = float(np.interp(0.0, grid, x_fall))
-    out.update(remnant_rising=r_rise, remnant_falling=r_fall,
-               loop_height=float(abs(r_fall - r_rise)))
+    out.update(remnant_rising_m=r_rise,
+               remnant_falling_m=r_fall,
+               loop_height_m=float(abs(r_fall - r_rise)))
 
     # 6) area + rotation direction (signed shoelace, time-ordered path)
     signed = 0.5 * float(np.sum(bias * np.roll(x, -1) - np.roll(bias, -1) * x))
@@ -255,7 +256,7 @@ def _save_annotated_loop(fig_path, bias, x, grid, x_rise, x_fall, out, units="")
     ax.plot(grid, x_rise, "-", lw=2, color="tab:blue", label="rising branch")
     ax.plot(grid, x_fall, "-", lw=2, color="tab:orange", label="falling branch")
 
-    off = out["response_offset"]
+    off = out["response_offset_m"]
     ax.axhline(off, ls=":", c="k", lw=0.8)
     ax.axvline(0, ls=":", c="k", lw=0.8)
 
@@ -266,16 +267,16 @@ def _save_annotated_loop(fig_path, bias, x, grid, x_rise, x_fall, out, units="")
             ax.annotate(f"{nm} {vc:+.2f} V", (vc, off), fontsize=8,
                         rotation=90, va="bottom", ha="right", color=c)
 
-    ax.plot([0, 0], [out["remnant_rising"], out["remnant_falling"]],
+    ax.plot([0, 0], [out["remnant_rising_m"], out["remnant_falling_m"]],
             "rs", ms=7, zorder=5, label="remnants @ 0 V")
 
     fmt = lambda v, p="{:+.3g}": "n/a" if v is None else p.format(v)
     stats = (f"imprint    {fmt(out['imprint_v'], '{:+.2f}')} V\n"
              f"width      {fmt(out['loop_width_v'], '{:.2f}')} V\n"
-             f"height     {out['loop_height']:.3g} {units}\n"
+             f"height     {out['loop_height_m']:.3g} {units}\n"
              f"area/cycle {out['loop_area_per_cycle']:.3g}\n"
              f"direction  {out['direction']}, {out['n_cycles']} cycles\n"
-             f"SNR        {out['loop_height']/max(out['branch_rms_noise'],1e-30):.1f}\n"
+             f"SNR        {out['loop_height_m']/max(out['branch_rms_noise'],1e-30):.1f}\n"
              f"quad.res.  {fmt(out['quadrature_residual'], '{:.3f}')}")
     ax.text(0.02, 0.02, stats, transform=ax.transAxes, fontsize=8,
             family="monospace", va="bottom",

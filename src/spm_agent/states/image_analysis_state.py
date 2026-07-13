@@ -2,6 +2,7 @@ from typing_extensions import TypedDict, NotRequired
 from typing import Literal
 
 from spm_agent.schemas.loops_params import LoopParams
+from spm_agent.schemas.loop_review import LoopReview
 
 
 #channels schemes
@@ -69,4 +70,4 @@ class AnalysisState(TypedDict):
     #loop branch
     loops: NotRequired[LoopData]
     loop_params: NotRequired[dict[str, LoopParams]] 
-    
+    loop_review: NotRequired[LoopReview]

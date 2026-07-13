@@ -16,9 +16,9 @@ class LoopParams(BaseModel, frozen=True):
         ge=0, description="RMS scatter of points around cycle-averaged branches")
 
     # saturation / offset
-    sat_at_vplus: float = Field(description="Mean response at V > 0.85*Vmax")
-    sat_at_vminus: float = Field(description="Mean response at V < 0.85*Vmin")
-    response_offset: float = Field(description="Vertical loop offset, (sat+ + sat-)/2")
+    sat_at_vplus_m: float = Field(description="Mean response at V > 0.85*Vmax")
+    sat_at_vminus_m: float = Field(description="Mean response at V < 0.85*Vmin")
+    response_offset_m: float = Field(description="Vertical loop offset, (sat+ + sat-)/2")
 
     # switching
     v_c_rising: Optional[float] = Field(
@@ -29,9 +29,9 @@ class LoopParams(BaseModel, frozen=True):
     loop_width_v: Optional[float] = Field(description="|Vc_rise - Vc_fall|, V")
 
     # remnant state
-    remnant_rising: float = Field(description="Branch value at V=0, rising branch")
-    remnant_falling: float = Field(description="Branch value at V=0, falling branch")
-    loop_height: float = Field(ge=0, description="|remnant_falling - remnant_rising|")
+    remnant_rising_m: float = Field(description="Branch value at V=0, rising branch")
+    remnant_falling_m: float = Field(description="Branch value at V=0, falling branch")
+    loop_height_m: float = Field(ge=0, description="|remnant_falling - remnant_rising|")
 
     # area / direction
     loop_area_per_cycle: float = Field(

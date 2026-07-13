@@ -29,7 +29,7 @@ async def loop_params_node(state: AnalysisState) -> AnalysisState:
         x = np.load(loops["loops"]["X"][f"{branch}_path"])
         y = np.load(loops["loops"]["Y"][f"{branch}_path"]) if has_y else None
 
-        params[branch] = LoopParams(**extract_loop_params(
+        params[f'{branch}_field'] = LoopParams(**extract_loop_params(
             bias, x, y,
             fig_path=str(LOOPS_DIR / f"loop_{branch}_annotated.png"),
             units=loops["loops"]["X"]["units"],

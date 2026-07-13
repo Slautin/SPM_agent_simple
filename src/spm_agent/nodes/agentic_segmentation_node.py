@@ -13,9 +13,7 @@ async def agentic_segmentation_node(state: AnalysisState) -> AnalysisState:
     recs     = state["channel_recommendations"]["task_recommendation"] # pyright: ignore[reportTypedDictNotRequiredAccess]
     channels = state["file_channels"]  # type: ignore
 
-    model   = ChatAnthropic(model = SEG_MODEL,
-                            temperature=0,
-                            max_tokens=SEG_MAX_TOKENS) # type: ignore
+    model   = ChatAnthropic(model = SEG_MODEL, temperature=0, max_tokens=SEG_MAX_TOKENS) # type: ignore
     
     results = {}
     for rec in recs[:2]:   #CHANGE IT LATER!!!
