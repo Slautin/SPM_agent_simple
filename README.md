@@ -68,5 +68,3 @@ acquisition, deterministic point picking with spatial penalty, top-level graph
 in `src/`. See `SYSTEM_REPORT_2026-07-16.md` for full technical details.
 ````
 ````
-
-Trim the Status/How-it-works sections as the system evolves — the report file can carry the detail so the README stays short.
