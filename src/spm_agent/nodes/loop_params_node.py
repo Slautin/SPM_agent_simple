@@ -1,11 +1,13 @@
 # nodes/loop_params_node.py
 import numpy as np
+from pathlib import Path
+
 
 from spm_agent.states.image_analysis_state import AnalysisState
 from spm_agent.schemas.loops_params import LoopParams
 from spm_agent.utils.loops_utils import extract_loop_params
 
-from spm_agent.config import LOOPS_DIR
+#from spm_agent.config import LOOPS_DIR
 
 
 async def loop_params_node(state: AnalysisState) -> AnalysisState:
@@ -20,7 +22,8 @@ async def loop_params_node(state: AnalysisState) -> AnalysisState:
         raise ValueError(
             "No X channel in segmented loops - cannot extract parameters. "
             f"Available: {list(loops['loops'].keys())}")
-
+    
+    dest = Path(loops["bias_off_path"]).parent
     has_y = "Y" in loops["loops"]
     params: dict[str, LoopParams] = {}
 
@@ -31,7 +34,7 @@ async def loop_params_node(state: AnalysisState) -> AnalysisState:
 
         params[f'{branch}_field'] = LoopParams(**extract_loop_params(
             bias, x, y,
-            fig_path=str(LOOPS_DIR / f"loop_{branch}_annotated.png"),
+            fig_path=str(dest / f"loop_{branch}_annotated.png"),
             units=loops["loops"]["X"]["units"],
         ))
 

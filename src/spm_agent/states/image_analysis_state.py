@@ -3,6 +3,7 @@ from typing import Literal
 
 from spm_agent.schemas.loops_params import LoopParams
 from spm_agent.schemas.loop_review import LoopReview
+from spm_agent.schemas.importance_components import ComponentsMeta
 
 
 #channels schemes
@@ -37,9 +38,10 @@ class SegmentationResult(TypedDict):
 class ImportanceMapResult(TypedDict):
     experiment_task: str            # free-form goal — lives HERE, per your point
     components_path: str        # .npy, pixel grid
+    components_meta: ComponentsMeta
     components_json_path: str
-    names: list[str]
-    weights: list[float]            # persistent knowledge, updated in outer loop
+    # names: list[str]
+    # weights: list[float]            # persistent knowledge, updated in outer loop
     importance_map_path: str        # deterministic: build_map(components, weights)
     scoring_code_path: str
     reasoning: str

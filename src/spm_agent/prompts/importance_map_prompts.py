@@ -43,6 +43,8 @@ IMPORTANCE_MAP_SYSTEM_PROMPT = (
     "IMAGE ANALYSIS ONLY, in pixel space. Do not output coordinates, rank points, or use physical/"
     "microscope units — produce only the map. Compute everything from the data; do not fabricate."
 
+    "Figures are expensive: keep them small (dpi <= 100). \n\n"
+
 )
 
 def build_importance_system_message(ctx=None) -> SystemMessage:
