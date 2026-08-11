@@ -59,6 +59,16 @@ class LoopData(TypedDict):
     loops: dict[str, LoopChannel]
     overview_path: str    # .png for vision review
     n_pulses: int
+    
+
+class CriteriaSegmentationResult(TypedDict):
+    experiment_task: str
+    labels_path: str            # int16 (H, W) class-label map
+    criteria_json_path: str
+    criteria_meta: "CriteriaMeta"
+    criteria_code_path: str
+    reasoning: str
+    figures: list[str]
 
 #main analysis state
 
