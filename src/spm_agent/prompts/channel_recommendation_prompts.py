@@ -1,6 +1,7 @@
 from langchain_core.messages import SystemMessage, HumanMessage
 from spm_agent.states.image_analysis_state import Channel
 from spm_agent.utils.channel_utils import channel_to_image_block, channel_to_text_block
+from spm_agent.utils.message_utils import with_context
 
 
 #channel recomendation node
@@ -34,8 +35,9 @@ CHANNEL_RECOMMENDATION_SYSTEM_PROMPT = (
         "- Include an overall summary, warnings, and overall confidence.\n"
     )
 
-def build_channel_recommendation_system_message() -> SystemMessage:
-    return SystemMessage(content=CHANNEL_RECOMMENDATION_SYSTEM_PROMPT)
+def build_channel_recommendation_system_message(ctx=None) -> SystemMessage:
+    system_message = with_context(CHANNEL_RECOMMENDATION_SYSTEM_PROMPT, ctx)
+    return SystemMessage(content=system_message)
 
 
 def build_channel_recommendation_human_message(file_channels: dict[str, Channel]) -> HumanMessage:

@@ -1,5 +1,12 @@
 from typing_extensions import TypedDict, NotRequired
+from typing import Literal
 
+from spm_agent.schemas.loops_params import LoopParams
+from spm_agent.schemas.loop_review import LoopReview
+from spm_agent.schemas.importance_components import ComponentsMeta
+
+
+#channels schemes
 class ChannelStats(TypedDict):
     min: float
     max: float
@@ -17,6 +24,7 @@ class Channel(TypedDict):
     array_path: str
     stats: ChannelStats
 
+#scan schemes
 class SegmentationResult(TypedDict):
     task: str                 # joins back to channel_recommendations
     channel: str              # channel ID the agent worked on
@@ -29,14 +37,54 @@ class SegmentationResult(TypedDict):
 
 class ImportanceMapResult(TypedDict):
     experiment_task: str            # free-form goal — lives HERE, per your point
-    importance_map_path: str        # .npy, pixel grid
+    components_path: str        # .npy, pixel grid
+    components_meta: ComponentsMeta
+    components_json_path: str
+    # names: list[str]
+    # weights: list[float]            # persistent knowledge, updated in outer loop
+    importance_map_path: str        # deterministic: build_map(components, weights)
     scoring_code_path: str
     reasoning: str
 
-class ImageAnalysisState(TypedDict):
+#loop schemes
+class LoopChannel(TypedDict):
+    on_path: str          # .npy, in-field response
+    off_path: str         # .npy, out-of-field response
+    units: str
+    n_points: int
+
+class LoopData(TypedDict):
+    bias_on_path: str     # x-axis for in-field loops
+    bias_off_path: str    # x-axis for out-of-field loops (= preceding pulse)
+    loops: dict[str, LoopChannel]
+    overview_path: str    # .png for vision review
+    n_pulses: int
+    
+
+class CriteriaSegmentationResult(TypedDict):
+    experiment_task: str
+    labels_path: str            # int16 (H, W) class-label map
+    criteria_json_path: str
+    criteria_meta: "CriteriaMeta"
+    criteria_code_path: str
+    reasoning: str
+    figures: list[str]
+
+#main analysis state
+
+class AnalysisState(TypedDict):
     file_path: str
     file_channels: NotRequired[dict[str, Channel]]
+    kind: NotRequired[Literal["spectrum", "loop", "image"]]
+
+    #scan branch
     channel_recommendations: NotRequired[dict]
     segmentation_results: NotRequired[dict[str, SegmentationResult]]
-    experiment_tasks: NotRequired[list[ImportanceMapResult]] 
+    experiment_tasks: NotRequired[list[str]] 
+    experiment_context: NotRequired[str]
     importance_maps: NotRequired[list[ImportanceMapResult]] 
+
+    #loop branch
+    loops: NotRequired[LoopData]
+    loop_params: NotRequired[dict[str, LoopParams]] 
+    loop_review: NotRequired[LoopReview]

@@ -1,5 +1,5 @@
-from spm_agent.states.image_analysis_state import ImageAnalysisState
-from spm_agent.config import SEG_MODEL, SEG_MAX_TOKENS, SEG_VISION_IN_LOOP, SEG_DIR, SEG_MAX_SUPERSTEPS
+from spm_agent.states.image_analysis_state import AnalysisState 
+from spm_agent.config import SEG_MODEL, SEG_MAX_TOKENS, SEG_VISION_IN_LOOP, SEG_MAX_SUPERSTEPS, seg_dir
 from spm_agent.tools.segmentation_toolbox import SegSession, build_segmentation_tools
 from spm_agent.utils.channel_utils import load_array
 from spm_agent.utils.image_utils import save_mask_and_overlay
@@ -9,13 +9,14 @@ from langchain_anthropic import ChatAnthropic
 from langchain.agents import create_agent
 
 
-async def agentic_segmentation_node(state: ImageAnalysisState) -> ImageAnalysisState:
+async def agentic_segmentation_node(state: AnalysisState) -> AnalysisState:
     recs     = state["channel_recommendations"]["task_recommendation"] # pyright: ignore[reportTypedDictNotRequiredAccess]
     channels = state["file_channels"]  # type: ignore
 
-    model   = ChatAnthropic(model = SEG_MODEL,
-                            temperature=0,
-                            max_tokens=SEG_MAX_TOKENS) # type: ignore
+    out_dir = seg_dir() / f"scan_{state.get('scan_index', 0):02d}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    model   = ChatAnthropic(model = SEG_MODEL, temperature=0, max_tokens=SEG_MAX_TOKENS) # type: ignore
     
     results = {}
     for rec in recs[:2]:   #CHANGE IT LATER!!!
@@ -40,7 +41,7 @@ async def agentic_segmentation_node(state: ImageAnalysisState) -> ImageAnalysisS
         final = final if isinstance(final, str) else " ".join(
             b.get("text", "") for b in final if isinstance(b, dict))
         
-        mask_path, overlay_path = save_mask_and_overlay(session.view, session.mask, task, SEG_DIR)
+        mask_path, overlay_path = save_mask_and_overlay(session.view, session.mask, task, out_dir)
         n_regions, coverage = session.mask_stats()
 
         results[task] = {

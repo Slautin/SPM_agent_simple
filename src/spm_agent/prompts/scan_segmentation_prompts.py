@@ -7,10 +7,10 @@ from spm_agent.utils.image_utils import render_overlay_datauri
 IMAGE_SEGMENTATION_SYSTEM_PROMPT = (
         "You are an SPM/PFM segmentation agent doing BASIC image analysis. You get ONE channel "
         "image and ONE task: produce a binary mask using the tools. Compose primitives freely.\n"
-        "- Thin BOUNDARY features (domain walls): compute_gradient_magnitude then threshold ('above').\n"
-        "- REGION features (domains): smooth, threshold ('otsu'), clean with morphology.\n"
-        "- threshold_image(units='absolute') thresholds RAW physical values — prefer it when you want "
-        "a reproducible, file-independent mask.\n"
+        # "- Thin BOUNDARY features (domain walls): compute_gradient_magnitude then threshold ('above').\n"
+        # "- REGION features (domains): smooth, threshold ('otsu'), clean with morphology.\n"
+        # "- threshold_image(units='absolute') thresholds RAW physical values — prefer it when you want "
+        # "a reproducible, file-independent mask.\n"
         "- Check mask_summary. Use <12 ops, then STOP and give "
         "one short paragraph: method, parameters, why."
     )
