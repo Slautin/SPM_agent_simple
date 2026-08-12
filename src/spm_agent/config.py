@@ -40,6 +40,27 @@ SEG_MAX_SUPERSTEPS = 30 #for the importance map: SEG_MAX_SUPERSTEPSx2
 #decision loop
 MAX_TOTAL_DECISIONS = 4      # hard safety cap, never reached in a sane experiment
 
+#scanning bounds
+LOCKED_SCAN_ALWAYS = ("x_scan_center_m", "y_scan_center_m")   # location is never the plan's
+LOCKED_SCAN_HOLD   = ("scan_size_m",)                         # hold additionally freezes size
+LOCKED_EXC_ALWAYS  = ("drive_frequency_hz",)                  # set by the probe tune
+
+LOCK_REASON = {
+    "x_scan_center_m":    "the frame centre is computed, never proposed",
+    "y_scan_center_m":    "the frame centre is computed, never proposed",
+    "scan_size_m":        "frame_action='hold' keeps the current frame",
+    "drive_frequency_hz": "it is set by the probe tune, not by the plan",
+}
+
+SCAN_SIZES_PX = (64, 128, 256, 512)
+
+SCAN_BOUNDS = {              # command limits; the instrument read-models carry none
+    "scan_rate_hz":      (0.1, 1.5),
+    "drive_amplitude_v": (0.05, 5.0),
+    "dart_width_hz":     (2.0e3, 3.0e4),
+    "dart_igain":        (50.0, 1500.),
+    "scan_size_m":       (1.0e-7, 3.0e-5),
+}
 
 #sandbox
 from spm_agent.sandbox import sandbox_python

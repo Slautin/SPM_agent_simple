@@ -22,8 +22,17 @@ class ExperimentalRecord(AnalysisState):
     scan_index: int                            # scans: own number; loops: parent scan
     pixel_yx: NotRequired[tuple[int, int]]     # loops only, on that scan's grid
 
+class SessionInfo(TypedDict):
+    """Session-scoped facts read once at preflight, before the first tip motion.
+    Internal - never rendered into LLM context."""
+    run_dir: str
+    started_ts: float                    # cutoff for "which .ibw is new"
+    instrument_directory: str            # where the instrument writes .ibw files
+
 class PFMExperimentState(TypedDict):
     """State of the PFM experiment."""
+    session_info: SessionInfo
+
     instrument_state: InstrumentState                          # live snapshot always actual
     scanner_calibrations: ScannerCalibrations                  # once per session
 

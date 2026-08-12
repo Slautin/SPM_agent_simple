@@ -8,10 +8,14 @@ from spm_agent.utils.decision_utils import build_decision_digest
 from spm_agent.prompts.decision_prompt import build_decision_system_message
 from spm_agent.config import MAX_TOTAL_DECISIONS
 
-def _guard_decision(action, why):
+def _guard_decision(action, frame_action, why):
     return ExperimentDecision(
-        understanding="(deterministic guard)", open_questions="",
-        action=action, target_criterion=None, reasoning=why)
+        understanding="(deterministic guard)",
+        open_questions="",
+        action=action,
+        frame_action=frame_action,
+        target_criterion=None,
+        reasoning=why)
 
 async def experiment_decision_node(state: PFMExperimentState) -> PFMExperimentState:
     recs      = state.get("experimental_records", [])
@@ -21,9 +25,9 @@ async def experiment_decision_node(state: PFMExperimentState) -> PFMExperimentSt
         raise RuntimeError(f"decide called with a measurement still in flight: {state['pending']}")
 
     if not any(r["kind"] == "image" for r in recs):          # no scan yet -> must scan
-        decision = _guard_decision("scan", "No image measured yet; a scan is required first.")
+        decision = _guard_decision("scan", "hold", "No image measured yet; a scan is required first.")
     elif len(decisions) >= MAX_TOTAL_DECISIONS:              # runaway protection
-        decision = _guard_decision("stop", f"Safety cap: {MAX_TOTAL_DECISIONS} decisions reached.")
+        decision = _guard_decision("stop", None, f"Safety cap: {MAX_TOTAL_DECISIONS} decisions reached.")
     else:
         work_dir = decisions_dir() / f"decision_{len(decisions):02d}"
         work_dir.mkdir(parents=True, exist_ok=True)

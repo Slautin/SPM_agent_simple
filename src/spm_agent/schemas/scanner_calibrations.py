@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from math import isclose
+
 
 class ScannerCalibrations(BaseModel, frozen=True):
     """
@@ -31,3 +33,8 @@ def to_scanner_calibration_state(state_dict: dict)-> ScannerCalibrations:
     )
 
     return scanner_calibration
+
+def calibration_is_fresh(cal: ScannerCalibrations, status: dict, rel_tol: float = 1e-6) -> bool:
+    """Offsets are invalid after an LVDT sensitivity change or session restart."""
+    return (isclose(cal.x_lvdt_sens_m_per_v, status["x_lvdt_sens_m_per_v"], rel_tol=rel_tol)
+            and isclose(cal.y_lvdt_sens_m_per_v, status["y_lvdt_sens_m_per_v"], rel_tol=rel_tol))

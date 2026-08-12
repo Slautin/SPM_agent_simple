@@ -74,7 +74,7 @@ def save_array(channel) -> dict:
     title = channel['title']
     arr_path = os.path.join(CASHE_DIR, f'{title}.npy')
 
-    data = np.asarray(channel['data'], dtype=np.float32)
+    data = np.asarray(channel['data'], dtype=np.float32).T
     try:
         np.save(arr_path, data)
         return {"ok": True, "path": str(arr_path), "error": None}
@@ -113,7 +113,7 @@ def save_preview(channel) -> dict:
     im_path = os.path.join(CASHE_DIR, f'{title}.png')
 
     try:
-        data = np.asarray(channel['data'], dtype=np.float64)
+        data = np.asarray(channel['data'], dtype=np.float64).T
         is_spectrum = ('SPECTRUM' in str(channel.get('data_type', '')).upper()
                        or data.ndim == 1)
 

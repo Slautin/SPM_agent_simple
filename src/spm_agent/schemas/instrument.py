@@ -18,6 +18,7 @@ class ProbePosition(BaseModel, frozen=True):
 class PFMExcitation(BaseModel, frozen=True):
     drive_amplitude_v: float = Field(description="AC excitation amplitude on the probe in volts")
     drive_frequency_hz: float = Field(description="Center frequency of the DART dual-frequency drive, Hz.")
+    dart_igain: float = Field(description="Integral gain of the DART frequency-tracking loop")
     dart_width_hz: float = Field(description = "Width of the frequency window, separating the two drive frequencies, Hz. (f1,2 = drive_frequency_hz +/- dart_width_hz/2)")
 
 class ContactFeedback(BaseModel, frozen=True):
@@ -59,6 +60,7 @@ def to_instrument_state(
     pfm_excitation = PFMExcitation(
         drive_amplitude_v = state_dict["v_ac_v"],
         drive_frequency_hz = state_dict['f_dart_hz'],
+        dart_igain=state_dict['dart_igain'], 
         dart_width_hz = state_dict["f_dart_width_hz"],
     )
 
