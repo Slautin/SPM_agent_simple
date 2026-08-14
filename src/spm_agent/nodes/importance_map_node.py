@@ -4,7 +4,7 @@ from spm_agent.utils.message_utils import flatten_text
 from spm_agent.utils.importance_map_utils import build_map
 from spm_agent.config import SANDBOX_PY, SEG_MODEL, SEG_MAX_TOKENS, SEG_MAX_SUPERSTEPS
 from spm_agent.prompts.importance_map_prompts import build_importance_human_message, build_importance_system_message
-from spm_agent.schemas.importance_components import validate_components
+from spm_agent.schemas.importance_components import validate_components, validate_safety
 from spm_agent.states.image_analysis_state import AnalysisState
 
 from langchain_anthropic import ChatAnthropic
@@ -14,6 +14,7 @@ from langchain.agents import create_agent
 from pathlib import Path
 import shutil
 import numpy as np
+import json
 
 MAX_VALIDATION_RETRIES = 2
 
@@ -30,7 +31,7 @@ def _make_workdir(importance_dir) -> Path:
 async def importance_map_node(state: AnalysisState) -> AnalysisState:
     tasks    = state.get("experiment_tasks", [])
     channels = state["file_channels"]           # type: ignore
-    seg      = state["segmentation_results"]     # type: ignore
+    recs     = state.get("channel_recommendations")      # type: ignore
     grid_hw  = tuple(next(iter(channels.values()))["shape"][:2])
 
     IMPORTANCE_DIR = importance_dir()
@@ -55,58 +56,76 @@ async def importance_map_node(state: AnalysisState) -> AnalysisState:
                              system_prompt=build_importance_system_message(state.get("experiment_context")))
 
         # --- agent run + deliverable validation with retries ---
-        base_msg = build_importance_human_message(task, channels, seg)
+        base_msg = build_importance_human_message(
+            task, channels, recs,
+            )
+
         messages = [base_msg]
         for attempt in range(MAX_VALIDATION_RETRIES + 1):
             out = await agent.ainvoke(
                 {"messages": messages}, # type: ignore
                 config={"recursion_limit": SEG_MAX_SUPERSTEPS*2},
             )
-            meta, errors = validate_components(
+            meta, errors, warnings = validate_components(
                 wd / "components.npy", wd / "components.json", grid_hw)
             if not errors:
-                break
+                comps = np.load(wd / "components.npy")
+                s_meta, s_err, s_warn = validate_safety(
+                    wd / "safety.npy", wd / "safety.json", grid_hw, components=comps)
+                errors, warnings = s_err, list(warnings) + list(s_warn)
+                if not errors:
+                    break
 
-            messages = [base_msg, HumanMessage(                      # fresh start, no history
+            messages = [base_msg, HumanMessage(              # fresh start, files still on disk
                 "A previous attempt already ran in this working directory — its files are "
-                "still there; re-load and reuse anything helpful (channels, intermediates). "
-                "Its deliverables failed validation:\n- " + "\n- ".join(errors) +
-                "\nProduce corrected components.npy and components.json.")]
-            print(errors)                                                                                                           #TEMP
-            # messages = out["messages"] + [HumanMessage(
-            #     "Your deliverables failed validation:\n- " + "\n- ".join(errors) +
-            #     "\nFix the issues and re-save components.npy and components.json.")]
+                "still there; re-load and reuse anything helpful. Its deliverables failed "
+                "validation:\n- " + "\n- ".join(errors) +
+                 "\nProduce corrected components.npy / components.json / "
+                "safety.npy / safety.json.")]
+            
         if errors:
-            raise RuntimeError(f"task {i} ({task!r}): components invalid "
-                               f"after {MAX_VALIDATION_RETRIES} retries: {errors}")
+            raise RuntimeError(f"task {i} ({task!r}): deliverables invalid after "
+                               f"{MAX_VALIDATION_RETRIES} retries: {errors}")
 
         # --- persist deliverables (scan- and task-indexed) ---
-        comp_path = dest / f"components_{i}.npy"
-        json_path = dest / f"components_{i}.json"
-        map_path  = dest / f"importance_map_{i}.npy"
-        code_path = dest / f"scoring_code_{i}.py"
+        comp_path   = dest / f"components_{i}.npy"
+        json_path   = dest / f"components_{i}.json"
+        safety_npy  = dest / f"safety_{i}.npy"
+        safety_json = dest / f"safety_{i}.json"
+        task_path   = dest / f"task_map_{i}.npy"
+        map_path    = dest / f"importance_map_{i}.npy"
+        code_path   = dest / f"scoring_code_{i}.py"
 
-        shutil.copy(wd / "components.npy", comp_path)
-        shutil.copy(wd / "components.json", json_path)
-        (wd / "components.npy").unlink()
-        (wd / "components.json").unlink()
-        code_path.write_text(extract_run_python_code(out["messages"]))
+        shutil.move(wd / "components.npy",  comp_path)
+        shutil.move(wd / "components.json", json_path)
+        shutil.move(wd / "safety.npy",      safety_npy)
+        shutil.move(wd / "safety.json",     safety_json)
 
-        # --- deterministic map: OUR arithmetic, not the agent's ---
-        np.save(map_path, build_map(np.load(comp_path), meta.weights)) #type: ignore
+        (dest / f"validation_{i}.json").write_text(
+            json.dumps({"warnings": warnings}, indent=2, ensure_ascii=False), encoding="utf-8")
 
-        figures = sorted(str(p) for p in backend.archive_dir.glob("*.png"))
+        # --- deterministic maps: OUR arithmetic, not the agent's ---
+        task_map = build_map(np.load(comp_path))
+        safety   = np.load(safety_npy)
+        np.save(task_path, task_map)
+        np.save(map_path,  task_map * safety)
+
+        code_path.write_text(extract_run_python_code(out["messages"]), encoding="utf-8")
 
         importance_maps.append({
-            "experiment_task": task,
-            "components_path": str(comp_path),
+            "experiment_task":      task,
+            "components_path":      str(comp_path),
             "components_json_path": str(json_path),
-            "components_meta": meta,
-            "importance_map_path": str(map_path),
-            "scoring_code_path": str(code_path),
-            "reasoning": flatten_text(out["messages"][-1].content),
-            "figures": figures,
-            "candidate_regions": [],           # filled later by the deterministic pick node
+            "components_meta":      meta,
+            "safety_map_path":      str(safety_npy),
+            "safety_json_path":     str(safety_json),
+            "safety_meta":          s_meta,
+            "task_map_path":        str(task_path),
+            "importance_map_path":  str(map_path),   # digest + no-criterion fallback only
+            "scoring_code_path":    str(code_path),
+            "reasoning":            flatten_text(out["messages"][-1].content),
+            "figures":              sorted(str(p) for p in backend.archive_dir.glob("*.png")),
+            "warnings":             warnings,
         })
 
-    return {"importance_maps": importance_maps}   # type: ignore
+    return {"importance_maps": importance_maps}    # type: ignore                        

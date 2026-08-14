@@ -17,7 +17,7 @@ CHANNEL_RECOMMENDATION_SYSTEM_PROMPT = (
         "3. grain boundary segmentation\n"
         "4. crack scratch detection\n"
         "5. surface contamination identification\n"
-        "6. topography artifact check\n\n"
+        "6. scanning artifacts identification\n\n"
 
         "Rules:\n"
         "- Use only channels provided in the input.\n"

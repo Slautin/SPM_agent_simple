@@ -135,32 +135,27 @@ def _stats_line(ch_id, ch) -> str:
 
 
 def _primary_channels(record, limit=MAX_PREVIEWS) -> list[str]:
-    """Channel ids the recommendation node found usable — keeps the block short.
-    Falls back to the first few channels if no recommendation is stored."""
     chans = record.get("file_channels", {}) or {}
-    rec   = record.get("channel_recommendations") or {}
+    rec   = record.get("channel_recommendations")
     out: list[str] = []
-    for r in rec.get("task_recommendation", []):
-        ch = r.get("primary_channel")
-        if r.get("feasible") and ch in chans and ch not in out:
-            out.append(ch)
+    for r in (rec.task_recommendation if rec else []):
+        if r.feasible and r.primary_channel in chans and r.primary_channel not in out:
+            out.append(r.primary_channel)
     return (out or list(chans))[:limit]
 
 
 def _rec_lines(record) -> list[str]:
-    rec = record.get("channel_recommendations") or {}
+    rec = record.get("channel_recommendations")
     if not rec:
         return []
     per = "; ".join(
-        f"{r['task'].replace(' segmentation', '').replace(' detection', '')}"
-        f" -> {r.get('primary_channel') or 'none'} ({r.get('confidence', 0):.2f})"
-        for r in rec.get("task_recommendation", []) if r.get("feasible"))
-    conf = rec.get("overall_confidence")
-    lines = [f"      channel recs"
-             f"{f' (overall {conf:.2f})' if conf is not None else ''}: {per or 'none feasible'}"]
-    warn = list(rec.get("global_warnings", []))
-    for r in rec.get("task_recommendation", []):
-        warn += list(r.get("warnings", []))
+        f"{r.task.replace(' segmentation', '').replace(' detection', '')}"
+        f" -> {r.primary_channel or 'none'} ({r.confidence:.2f})"
+        for r in rec.task_recommendation if r.feasible)
+    lines = [f"      channel recs (overall {rec.overall_confidence:.2f}): {per or 'none feasible'}"]
+    warn = list(rec.global_warnings)
+    for r in rec.task_recommendation:
+        warn += list(r.warnings)
     if warn:
         lines.append("      warnings: " + "; ".join(warn[:MAX_WARNINGS]))
     return lines

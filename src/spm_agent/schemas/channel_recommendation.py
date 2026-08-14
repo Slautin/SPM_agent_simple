@@ -6,8 +6,8 @@ AnalysisTask = Literal[
     "ferroelectric domain wall segmentation",
     "grain boundary segmentation",
     "crack scratch detection",
-    "surface contamination detection",
-    "scanning artifact identification"
+    "surface contamination identification",
+    "scanning artifacts identification"
 ]
 
 class SingleTaskChannelReccomendation(BaseModel):

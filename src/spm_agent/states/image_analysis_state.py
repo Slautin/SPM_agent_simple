@@ -3,7 +3,8 @@ from typing import Literal
 
 from spm_agent.schemas.loops_params import LoopParams
 from spm_agent.schemas.loop_review import LoopReview
-from spm_agent.schemas.importance_components import ComponentsMeta
+from spm_agent.schemas.importance_components import ComponentsMeta, SafetyMeta
+from spm_agent.schemas.channel_recommendation import TaskChannelReccomendationReport
 
 
 #channels schemes
@@ -38,13 +39,19 @@ class SegmentationResult(TypedDict):
 class ImportanceMapResult(TypedDict):
     experiment_task: str            # free-form goal — lives HERE, per your point
     components_path: str        # .npy, pixel grid
-    components_meta: ComponentsMeta
     components_json_path: str
-    # names: list[str]
-    # weights: list[float]            # persistent knowledge, updated in outer loop
-    importance_map_path: str        # deterministic: build_map(components, weights)
+    components_meta: ComponentsMeta
+
+    task_map_path: str              # equal-weight overview of the task criteria, 0..100
+    safety_map_path: str            # safety [0,1]
+    safety_json_path: str           
+    safety_meta: SafetyMeta         
+    importance_map_path: str        # task x safety — digest figure + no-criterion fallback 
+
     scoring_code_path: str
     reasoning: str
+    figures: list[str]
+    warnings: list[str]             # advisory validation findings, kept not raised
 
 #loop schemes
 class LoopChannel(TypedDict):
@@ -65,7 +72,7 @@ class CriteriaSegmentationResult(TypedDict):
     experiment_task: str
     labels_path: str            # int16 (H, W) class-label map
     criteria_json_path: str
-    criteria_meta: "CriteriaMeta"
+    #criteria_meta: "CriteriaMeta"
     criteria_code_path: str
     reasoning: str
     figures: list[str]
@@ -74,14 +81,19 @@ class CriteriaSegmentationResult(TypedDict):
 
 class AnalysisState(TypedDict):
     file_path: str
-    file_channels: NotRequired[dict[str, Channel]]
-    kind: NotRequired[Literal["spectrum", "loop", "image"]]
-
-    #scan branch
-    channel_recommendations: NotRequired[dict]
-    segmentation_results: NotRequired[dict[str, SegmentationResult]]
     experiment_tasks: NotRequired[list[str]] 
     experiment_context: NotRequired[str]
+    scan_index: NotRequired[int]
+
+    # --- readfile ---
+    file_channels: NotRequired[dict[str, Channel]]
+    kind: NotRequired[Literal["spectrum", "loop", "image"]]
+    preview_grid_path: NotRequired[str]  
+
+    #scan branch
+    channel_recommendations: NotRequired[TaskChannelReccomendationReport]
+    channel_recommendations_path: NotRequired[str]
+    segmentation_results: NotRequired[dict[str, SegmentationResult]]
     importance_maps: NotRequired[list[ImportanceMapResult]] 
 
     #loop branch
