@@ -32,13 +32,13 @@ async def experiment_decision_node(state: PFMExperimentState) -> PFMExperimentSt
         work_dir = decisions_dir() / f"decision_{len(decisions):02d}"
         work_dir.mkdir(parents=True, exist_ok=True)
 
-        content = build_decision_digest(state, work_dir=work_dir)
-        (work_dir / "digest.txt").write_text(content[0]["text"], encoding="utf-8")
+        digest = build_decision_digest(state)
+        (work_dir / "digest.txt").write_text(digest, encoding="utf-8")
 
         model = ChatAnthropic(model=SEG_MODEL, temperature=0, max_tokens=SEG_MAX_TOKENS)  # type: ignore
         decision = await model.with_structured_output(ExperimentDecision).ainvoke(
-            [build_decision_system_message(), HumanMessage(content=content)])
-
+            [build_decision_system_message(state.get("experiment_context")),
+             HumanMessage(content=digest)])
         (work_dir / "decision.json").write_text(
             decision.model_dump_json(indent=2), encoding="utf-8")# type: ignore
         

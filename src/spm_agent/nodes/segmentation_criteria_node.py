@@ -87,7 +87,7 @@ async def segmentation_criteria_node(state: AnalysisState) -> AnalysisState:
         code_path = dest / f"criteria_code_{i}.py"
         shutil.copy(wd / "labels.npy", lab_path); (wd / "labels.npy").unlink()
         shutil.copy(wd / "criteria.json", json_path); (wd / "criteria.json").unlink()
-        code_path.write_text(extract_run_python_code(out["messages"]))
+        code_path.write_text(extract_run_python_code(out["messages"]), encoding="utf-8")
 
         figures = sorted(str(p) for p in backend.archive_dir.glob("*.png"))
 

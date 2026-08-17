@@ -1,5 +1,5 @@
 # src/spm_agent/tools/python_backend.py
-import base64, subprocess
+import base64, os, subprocess
 from pathlib import Path
 from langchain_core.tools import tool
 import shutil
@@ -20,6 +20,11 @@ def _fig_b64(path, max_px: int = MAX_FIG_PX) -> str:
     buf = io.BytesIO(); im.save(buf, format="PNG", optimize=True)
     return base64.b64encode(buf.getvalue()).decode()
 
+_ENV_KEEP = ("SYSTEMROOT", "PATH", "PATHEXT", "COMSPEC", "TEMP", "TMP",
+             "NUMBER_OF_PROCESSORS")
+
+
+
 
 class LocalBackend:
     """Run ONE code cell in the isolated interpreter, in a persistent workdir.
@@ -30,14 +35,26 @@ class LocalBackend:
         self.archive_dir = Path(archive_dir) if archive_dir else None
         self._step = 0
 
+    def _env(self) -> dict:
+        """No API keys, no instrument config, no user variables. SYSTEMROOT and PATH
+        are required for the interpreter to start on Windows."""
+        env = {k: v for k, v in os.environ.items() if k in _ENV_KEEP}
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTHONNOUSERSITE"]  = "1"          # ignore user site-packages
+        env["MPLBACKEND"]        = "Agg"        # never attempt a GUI
+        env["MPLCONFIGDIR"]      = str(self.wd) # keep matplotlib's cache in the workdir
+        return env
+
 
     def execute(self, code: str) -> dict:
-        (self.wd / "cell.py").write_text(code)                  # 1. write the model's code
-        before = set(self.wd.glob("*.png"))                     #    note existing figures
-        try:                                                    # 2. run it — isolated + bounded
+        (self.wd / "cell.py").write_text(code, encoding="utf-8")   # model writes σ, µm, °
+        before = set(self.wd.glob("*.png"))
+        #env = {**os.environ, "PYTHONIOENCODING": "utf-8"}          # child's stdout, too
+        try:
             p = subprocess.run([self.py, "cell.py"], cwd=self.wd,
-                               timeout=self.timeout, capture_output=True, text=True)
-            out = (p.stdout + p.stderr)[-4000:]                 #    stdout, or traceback on error
+                               timeout=self.timeout, capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", env=self._env())
+            out = (p.stdout + p.stderr)[-4000:]
         except subprocess.TimeoutExpired:
             out = f"ERROR: exceeded {self.timeout}s, killed."
         new = sorted(set(self.wd.glob("*.png")) - before)       # 3. figures it just saved

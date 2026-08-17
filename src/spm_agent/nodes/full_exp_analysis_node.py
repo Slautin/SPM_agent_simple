@@ -32,7 +32,11 @@ async def full_exp_analysis_node(state: PFMExperimentState) -> PFMExperimentStat
         raise RuntimeError(f"ordered {pending['kind']!r} but file is {out['kind']!r}: "
                            f"{pending['file_path']}")
 
-    record = {**out, "instrument_params": state.get("instrument_state")}
+    record = {**out,
+              "instrument_params": state.get("instrument_state"),
+              "requested_params":   pending.get("params"),
+              "decision_index":     pending["decision_index"]}
+    
     if out["kind"] == "image":
         record["scan_index"] = _last_scan_index(recs) + 1     # new scan
     else:

@@ -36,11 +36,24 @@ class ExperimentDecision(BaseModel, frozen=True):
         description="Required when action='loop': the "
                     "importance-map criterion the next measurement should serve, copied "
                     "exactly from the CRITERIA list in the digest")
+
+    target_strategy: Optional[Literal["max", "min", "diverse"]] = Field(
+        default=None,
+        description="Required when action='loop'. How to prioritise pixels on the chosen "
+                    "criterion's scoring map. "
+                    "max: prioritise the highest-scoring pixels. "
+                    "min: prioritise the lowest-scoring pixels. "
+                    "diverse: prioritise a score far from those already measured for this "
+                    "criterion — fills a gap in what has been sampled rather than pushing "
+                    "an extreme.")
+    
     reasoning: str = Field(
         description="2-3 sentences: why this action closes the gap, citing specific "
                     "loop numbers and values from the digest. "
                     "For zoom_in/zoom_out, state the "
-                    "structure's apparent scale against the current pixel size or frame size")
+                    "structure's apparent scale against the current pixel size or frame size"
+                    "For action='loop', say why that criterion and that strategy close the "
+                    "gap, given how the criterion has been sampled so far. ")
 
 
     @model_validator(mode="after")
@@ -52,7 +65,10 @@ class ExperimentDecision(BaseModel, frozen=True):
 
         if self.action == "loop":
             assert self.target_criterion, "action='loop' requires target_criterion"
+            assert self.target_strategy, "action='loop' requires target_strategy"
         else:
             assert self.target_criterion is None, \
                 "target_criterion applies only to action='loop'"
+            assert self.target_strategy is None, \
+                "target_strategy applies only to action='loop'"
         return self

@@ -1,6 +1,7 @@
 from spm_agent.schemas.scanner_calibrations import ScannerCalibrations
 from spm_agent.schemas.instrument import InstrumentState
 from spm_agent.schemas.experimental_decision import ExperimentDecision
+from spm_agent.schemas.scan_plan import ScanPlan
 
 from spm_agent.states.image_analysis_state import AnalysisState
 
@@ -11,9 +12,11 @@ class PendingMeasurement(TypedDict):
     """The measurement currently being ordered/executed. Created by decide/pick,
     file_path filled by acquisition, consumed and cleared by analysis."""
     kind: Literal["scan", "loop"]              # intent — what was ordered
+    decision_index: int                        # which decision ordered it
+    params: NotRequired[ScanPlan]
     pixel_yx: NotRequired[tuple[int, int]]     # loops: where (from pick)
     file_path: NotRequired[str]                # set by acquisition
-    decision_index: int                        # which decision ordered it
+    
 
 class ExperimentalRecord(AnalysisState):
     """One completed measurement + its analysis. `instrument_params` is a raw

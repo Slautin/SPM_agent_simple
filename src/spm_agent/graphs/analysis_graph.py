@@ -10,11 +10,13 @@ from spm_agent.nodes.loop_params_node import loop_params_node
 from spm_agent.nodes.loop_review_node import loop_review_node
 from spm_agent.nodes.save_analysis_node import save_analysis_node
 
+from spm_agent.config import LLM_RETRY
+
 def build_analysis_graph():
     # --- image subgraph: the whole existing chain, compiled separately ---
     img = StateGraph(AnalysisState)
-    img.add_node("channel_recommendation", channel_recommendation_node)
-    img.add_node("importance_map", importance_map_node)
+    img.add_node("channel_recommendation", channel_recommendation_node, retry_policy=LLM_RETRY)
+    img.add_node("importance_map", importance_map_node, retry_policy=LLM_RETRY)
     img.add_edge(START, "channel_recommendation")
     img.add_edge("channel_recommendation", "importance_map")
     img.add_edge("importance_map", END)
@@ -25,7 +27,7 @@ def build_analysis_graph():
     lp = StateGraph(AnalysisState)
     lp.add_node("build_loop", build_loop_node)
     lp.add_node("loop_params", loop_params_node)
-    lp.add_node("loop_review", loop_review_node)
+    lp.add_node("loop_review", loop_review_node, retry_policy=LLM_RETRY)
 
     lp.add_edge(START, "build_loop")
     lp.add_edge("build_loop", "loop_params")

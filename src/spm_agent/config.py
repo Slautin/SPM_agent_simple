@@ -1,6 +1,10 @@
 from pathlib import Path
 import shutil
 
+import anthropic
+import httpx
+from langgraph.types import RetryPolicy
+
 
 PROJECT_ROOT = Path().resolve().parents[0]
 
@@ -17,7 +21,7 @@ SCIFIREADERS_MCP_COMMAND = str(_scifi_cmd)
 SPM_MCP_SERVER_CONFIG = {
         "spm": {
             "transport": "streamable-http",
-            "url": "http://10.46.218.71:8000/mcp"#"http://10.128.35.95:8000/mcp",
+            "url": "http://10.46.217.255:8000/mcp"#"http://10.128.35.95:8000/mcp",
         },
     }
 
@@ -66,13 +70,17 @@ SCAN_BOUNDS = {              # command limits; the instrument read-models carry 
     "scan_size_m":       (1.0e-7, 3.0e-5),
 }
 
+#loop point picking
+PICK_PATCH_PX          = 3      # neighbourhood a single measurement effectively samples
+PICK_BORDER_PX         = 5      # frame edge is not measurable
+PICK_PENALTY_RADIUS_PX = 5     # keep loops apart
+PICK_PENALTY_FLOOR     = 0.05   # residual desirability at an already-measured pixel
+
 #sandbox
 from spm_agent.sandbox import sandbox_python
 
 SANDBOX_PY = str(sandbox_python())
-
 IMPORTANCE_DIR = CASHE_DIR.parent / "importance"
-
 LOOPS_DIR = CASHE_DIR.parent / "loops" 
 
 
@@ -103,3 +111,16 @@ def seg_dir() -> Path:  return run_dir() / "segmentation"
 def criteria_dir() -> Path: return run_dir() / "criteria_seg"
 def channels_dir() -> Path: return run_dir() / "channels"
 def records_dir() -> Path: return run_dir() / "records"
+
+
+#anthropic retrypolicy
+def _transient(exc: Exception) -> bool:
+    """Retry network-level failures only — never our own guards, validation errors
+    or InstrumentError, which mean the run should stop and be looked at."""
+    return isinstance(exc, (httpx.ConnectError, httpx.ReadTimeout, httpx.RemoteProtocolError,
+                            anthropic.APIConnectionError, anthropic.RateLimitError,
+                            anthropic.InternalServerError))
+
+
+LLM_RETRY = RetryPolicy(max_attempts=4, initial_interval=2.0, backoff_factor=2.0,
+                        max_interval=30.0, jitter=True, retry_on=_transient)
