@@ -32,7 +32,7 @@ SEG_DIR = Path("./seg_proto").resolve()
 SEG_DIR.mkdir(parents=True, exist_ok=True)
 
 SEG_MODEL = "claude-sonnet-4-6"
-SEG_MAX_TOKENS = 2046#4096
+SEG_MAX_TOKENS = 4096
 SEG_VISION_IN_LOOP = True
 SEG_MAX_SUPERSTEPS = 30 #for the importance map: SEG_MAX_SUPERSTEPSx2 
 
