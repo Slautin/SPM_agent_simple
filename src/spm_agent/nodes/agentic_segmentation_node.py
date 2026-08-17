@@ -10,7 +10,7 @@ from langchain.agents import create_agent
 
 
 async def agentic_segmentation_node(state: AnalysisState) -> AnalysisState:
-    recs     = state["channel_recommendations"]["task_recommendation"] # pyright: ignore[reportTypedDictNotRequiredAccess]
+    recs     = state["channel_recommendations"].task_recommendation # pyright: ignore[reportTypedDictNotRequiredAccess]
     channels = state["file_channels"]  # type: ignore
 
     out_dir = seg_dir() / f"scan_{state.get('scan_index', 0):02d}"
@@ -20,9 +20,9 @@ async def agentic_segmentation_node(state: AnalysisState) -> AnalysisState:
     
     results = {}
     for rec in recs[:2]:   #CHANGE IT LATER!!!
-        if not rec["feasible"] or rec["primary_channel"] not in channels:
+        if not rec.feasible or rec.primary_channel not in channels:
             continue
-        task, channel_id = rec["task"], rec["primary_channel"]
+        task, channel_id = rec.task, rec.primary_channel
 
         session = SegSession.from_raw(load_array(channels[channel_id].get("array_path")))
         agent   = create_agent(

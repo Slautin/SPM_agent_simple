@@ -34,7 +34,11 @@ SEG_DIR.mkdir(parents=True, exist_ok=True)
 SEG_MODEL = "claude-sonnet-4-6"
 SEG_MAX_TOKENS = 4096
 SEG_VISION_IN_LOOP = True
-SEG_MAX_SUPERSTEPS = 30 #for the importance map: SEG_MAX_SUPERSTEPSx2 
+SEG_MAX_SUPERSTEPS = 40 #for the importance map: SEG_MAX_SUPERSTEPSx2 
+
+#channel reccomendation model
+CHAN_MODEL      = "claude-sonnet-4-6"   # ablation arm; was ChatOpenAI("gpt-5.4")
+CHAN_MAX_TOKENS = 4096
 
 
 #decision loop
@@ -97,3 +101,5 @@ def loops_dir() -> Path:      return run_dir() / "loops"
 def decisions_dir() -> Path:  return run_dir() / "decisions"
 def seg_dir() -> Path:  return run_dir() / "segmentation"
 def criteria_dir() -> Path: return run_dir() / "criteria_seg"
+def channels_dir() -> Path: return run_dir() / "channels"
+def records_dir() -> Path: return run_dir() / "records"

@@ -4,6 +4,22 @@ from pathlib import Path
 from langchain_core.tools import tool
 import shutil
 
+MAX_FIG_PX = 2048
+
+
+def _fig_b64(path, max_px: int = MAX_FIG_PX) -> str:
+    """Figures are re-sent on every later turn — shrink what the model sees.
+    The full-resolution copy still goes to archive_dir."""
+    import io
+    from PIL import Image
+    im = Image.open(path)
+    if max(im.size) > max_px:
+        im.thumbnail((max_px, max_px))
+    if im.mode == "RGBA":
+        im = im.convert("RGB")
+    buf = io.BytesIO(); im.save(buf, format="PNG", optimize=True)
+    return base64.b64encode(buf.getvalue()).decode()
+
 
 class LocalBackend:
     """Run ONE code cell in the isolated interpreter, in a persistent workdir.
@@ -30,7 +46,8 @@ class LocalBackend:
             for f in new:
                 shutil.copy(f, self.archive_dir / f"step{self._step:02d}_{f.name}")
         self._step += 1
-        images = [base64.b64encode(f.read_bytes()).decode() for f in new]
+        #images = [base64.b64encode(f.read_bytes()).decode() for f in new]
+        images = [_fig_b64(f) for f in new]
         return {"stdout": out or "(no output)", "images": images}
 
 

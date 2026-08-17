@@ -95,3 +95,5 @@ def to_view01(raw, p=(1, 99)):        # robust display image (what the model see
     lo, hi = np.percentile(f, p) if f.size else (0.0, 1.0)
     if hi <= lo: hi = lo + 1e-12
     return np.nan_to_num(np.clip((raw - lo) / (hi - lo), 0, 1))
+
+
