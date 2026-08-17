@@ -19,6 +19,9 @@ IMPORTANCE_MAP_SYSTEM_PROMPT = (
 
     "WHAT TO PRODUCE\n"
     "1-4 TASK criteria — each float32 (H, W) in [0,1], higher = more informative for THIS task. "
+    "Construct the smallest non-redundant set that comprehensively represents the scientific task."
+    "Add criteria only when they capture additional task-relevant physical information; "
+    "do not generate criteria merely to reach a target number"
     "Each must rest on a physical mechanism: what causes the contrast, and why it matters for this "
     "task. Check the mechanism against the measurement physics of the technique and discard what "
     "it contradicts; label heuristics as such. Criteria must not duplicate one another, and they "
