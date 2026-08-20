@@ -16,10 +16,14 @@ async def full_exp_analysis_node(state: PFMExperimentState) -> PFMExperimentStat
     recs    = state.get("experimental_records", [])
     pending = state["pending"]                    # must exist — acquisition ran before us
 
+    is_scan  = pending["kind"] == "scan"
+    scan_idx = _last_scan_index(recs) + (1 if is_scan else 0)
+
     payload: AnalysisState = {
         "file_path": pending["file_path"],
         "experiment_tasks": state.get("experiment_tasks", []),
-        "scan_index": _last_scan_index(recs) + 1,
+        "scan_index": scan_idx,
+        "decision_index":   pending["decision_index"],
     }
     if state.get("experiment_context"):
         payload["experiment_context"] = state["experiment_context"]
@@ -35,13 +39,16 @@ async def full_exp_analysis_node(state: PFMExperimentState) -> PFMExperimentStat
     record = {**out,
               "instrument_params": state.get("instrument_state"),
               "requested_params":   pending.get("params"),
-              "decision_index":     pending["decision_index"]}
+              "decision_index":    pending["decision_index"],
+              "scan_index":        scan_idx}
     
-    if out["kind"] == "image":
-        record["scan_index"] = _last_scan_index(recs) + 1     # new scan
-    else:
-        record["scan_index"] = _last_scan_index(recs)          # parent scan
-        record["pixel_yx"]   = pending["pixel_yx"]             # the executed pick
+    if not is_scan:
+        record["pixel_yx"] = pending["pixel_yx"]      # the executed pick
+    # if out["kind"] == "image":
+    #     record["scan_index"] = _last_scan_index(recs) + 1     # new scan
+    # else:
+    #     record["scan_index"] = _last_scan_index(recs)          # parent scan
+    #     record["pixel_yx"]   = pending["pixel_yx"]             # the executed pick
 
     return {"experimental_records": recs + [record],
             "pending": None}                                   # consumed — cycle complete

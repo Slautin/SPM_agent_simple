@@ -66,6 +66,10 @@ def build_scan_plan_human_message(state, locked: tuple = ()) -> HumanMessage:
                     "fixed, so the new frame is the middle of the current one.",
         "zoom_out": "Propose a LARGER scan_size_m. The centre is "
                     "fixed, so the current frame stays in the middle.",
+        "relocate": "The frame has ALREADY been moved to an unexplored region next to "
+                    "the last one — CURRENT INSTRUMENT SETTINGS below is the NEW centre, "
+                    "while PREVIOUS SCANS are where it used to be. The size came with it. "
+                    "Set only acquisition quality parameters.",
     }
 
     text = [

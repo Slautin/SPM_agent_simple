@@ -1,7 +1,7 @@
 from math import isclose
 from pydantic import BaseModel, Field
 
-from spm_agent.config import SCAN_SIZES_PX, SCAN_BOUNDS, LOCKED_SCAN_ALWAYS, LOCKED_SCAN_HOLD, LOCKED_EXC_ALWAYS
+from spm_agent.config import SCAN_SIZES_PX, SCAN_BOUNDS, LOCKED_SCAN_ALWAYS, LOCKED_SCAN_FRAME, LOCKED_EXC_ALWAYS, MIN_ZOOM_FACTOR, LOCK_REASON
 from spm_agent.schemas.instrument import ScanSettings, PFMExcitation, InstrumentState
 
 class ScanPlan(BaseModel, frozen=True):
@@ -34,7 +34,7 @@ def validate_plan(plan: ScanPlan, live: InstrumentState,
         if frame_action == "zoom_out" and ratio > 1 / MIN_ZOOM_FACTOR:
             errors.append(f"zoom_out requires scan_size_m at least {MIN_ZOOM_FACTOR}x larger "
                           f"than {live_size:.6g} (got {ss.scan_size_m:.6g})")
-    elif frame_action != "hold":
+    elif frame_action not in ("hold", "relocate"):
         errors.append(f"frame_action={frame_action!r} is not supported yet")
 
     lock_scan, lock_exc = locked_fields(frame_action)
@@ -79,6 +79,9 @@ def plan_diff(plan: ScanPlan, live: InstrumentState,
     return diff
 
 def locked_fields(frame_action: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """(scan_settings fields, pfm_excitation fields) the plan must copy unchanged."""
-    scan = LOCKED_SCAN_ALWAYS + (LOCKED_SCAN_HOLD if frame_action == "hold" else ())
+    """(scan_settings fields, pfm_excitation fields) the plan must copy unchanged.
+    Only a zoom may move the frame size: hold keeps the frame, and relocate carries
+    it to the neighbouring region — the step it took was one frame wide."""
+    scan = LOCKED_SCAN_ALWAYS + (LOCKED_SCAN_FRAME
+                                 if frame_action in ("hold", "relocate") else ())
     return scan, LOCKED_EXC_ALWAYS

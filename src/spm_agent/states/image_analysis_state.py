@@ -84,6 +84,7 @@ class AnalysisState(TypedDict):
     experiment_tasks: NotRequired[list[str]] 
     experiment_context: NotRequired[str]
     scan_index: NotRequired[int]
+    decision_index: NotRequired[int]
 
     # --- readfile ---
     file_channels: NotRequired[dict[str, Channel]]

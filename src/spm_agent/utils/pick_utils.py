@@ -37,3 +37,16 @@ def border_mask(shape, margin_px: int) -> np.ndarray:
     m = np.zeros(shape, bool)
     m[margin_px:shape[0] - margin_px, margin_px:shape[1] - margin_px] = True
     return m
+
+def pixel_to_frame_xy(scan_settings, row: int, col: int, row0_at_top: bool = True):
+    """Centre of pixel (row, col) in scan-frame metres, on the frame that pixel
+    grid belongs to. Pass that scan's own ScanSettings — never the live one."""
+    ss = scan_settings
+    L, N = ss.scan_size_m, ss.pixels
+    if not (0 <= row < N and 0 <= col < N):
+        raise ValueError(f"pixel ({row},{col}) outside a {N}x{N} grid")
+
+    dx = (col + 0.5) / N * L - L / 2
+    dy = (row + 0.5) / N * L - L / 2
+    return (ss.x_scan_center_m + dx,
+            ss.y_scan_center_m + (-dy if row0_at_top else dy))

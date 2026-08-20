@@ -8,6 +8,9 @@ from pathlib import Path
 #from spm_agent.utils.image_utils import image_path_to_data_url
 from spm_agent.schemas.experimental_decision import ExperimentDecision
 
+from typing import get_args
+from spm_agent.schemas.loop_review import LoopReview
+
 def resolve_criterion(decision: ExperimentDecision, names: list[str]) -> str | None:
     """Validated criterion name, or None -> deterministic weighted-map fallback (log it)."""
     if decision.action != "loop":
@@ -47,18 +50,45 @@ def _criteria_of(scan):
         arrs.append(np.load(imap["components_path"]))
     return names, np.concatenate(arrs, axis=0), rats
 
+# def _sampling_block(loops, names, components, patch=3):
+#     if not loops:
+#         return "  sampling per criterion: no loops yet"
+#     phis = np.array([_phi(components, *r["pixel_yx"], patch) for r in loops])   # (L, K)
+#     lines = []
+#     for k, n in enumerate(names):
+#         v = np.sort(phis[:, k])
+#         hi, lo = int((v > 0.67).sum()), int((v < 0.33).sum())
+#         lines.append(f"    - {n}: high {hi}, mid {len(v)-hi-lo}, low {lo}"
+#                      f"   [{', '.join(f'{x:.2f}' for x in v)}]")
+#     return ("  sampling per criterion (each loop's score; low <0.33, high >0.67):\n"
+#             + "\n".join(lines))
+
+def _map_bands(phi, lo=0.33, hi=0.67):
+    """Share of the frame in each band — the same bands the measured line uses, so the
+    two read against each other."""
+    v = phi.ravel()
+    return (f"{(v < lo).mean():.0%} low / "
+            f"{((v >= lo) & (v <= hi)).mean():.0%} mid / "
+            f"{(v > hi).mean():.0%} high")
+
+
 def _sampling_block(loops, names, components, patch=3):
-    if not loops:
-        return "  sampling per criterion: no loops yet"
-    phis = np.array([_phi(components, *r["pixel_yx"], patch) for r in loops])   # (L, K)
+    """Per criterion: what the frame contains, and where the loops went."""
+    phis = (np.array([_phi(components, *r["pixel_yx"], patch) for r in loops])
+            if loops else None)
     lines = []
     for k, n in enumerate(names):
+        lines.append(f"    - {n}")
+        lines.append(f"        frame   : {_map_bands(components[k])}")
+        if phis is None:
+            lines.append("        measured: no loops yet")
+            continue
         v = np.sort(phis[:, k])
         hi, lo = int((v > 0.67).sum()), int((v < 0.33).sum())
-        lines.append(f"    - {n}: high {hi}, mid {len(v)-hi-lo}, low {lo}"
+        lines.append(f"        measured: {lo} low / {len(v)-hi-lo} mid / {hi} high"
                      f"   [{', '.join(f'{x:.2f}' for x in v)}]")
-    return ("  sampling per criterion (each loop's score; low <0.33, high >0.67):\n"
-            + "\n".join(lines))
+    return ("  per criterion — 'frame' is the share of pixels in each band, 'measured' "
+            "is where the loops landed (low <0.33, high >0.67):\n" + "\n".join(lines))
 
 def _loop_line(label, rec, names, components, patch=3):
     py, px = rec["pixel_yx"]
@@ -141,3 +171,100 @@ def find_criterion(scan, name: str):
         if name in names:
             return imap, names.index(name)
     return None, None
+
+
+# --------------------------- summary digest ---------------------------
+
+_POOLED = (("v_c_rising", "V"), ("v_c_falling", "V"), ("loop_width_v", "V"),
+           ("imprint_v", "V"), ("loop_height_m", ""), ("loop_area_per_cycle", ""))
+
+QUALITY_CLASSES = get_args(LoopReview.model_fields["loop_quality"].annotation)
+
+
+def _population_block(loops) -> str:
+    """Cross-scan aggregates. The per-loop lines already carry every value; this is the
+    population view, the one thing the model cannot reliably assemble from a list.
+    n= is reported because the Vc fields are Optional — a loop that never switched
+    legitimately has none, and that absence is itself a finding."""
+    if not loops:
+        return "  no loops measured"
+
+    revs = [r["loop_review"] for r in loops]
+    fe   = sum(r.is_ferroelectric_like for r in revs)
+    qual = {q: sum(r.loop_quality == q for r in revs) for q in QUALITY_CLASSES}
+    lines = [f"  {len(loops)} loop(s) | ferroelectric-like {fe}/{len(loops)} | quality "
+             + ", ".join(f"{k} {n}" for k, n in qual.items() if n)]
+    
+    for field, unit in _POOLED:
+        got = [v for v in (getattr(r["loop_params"]["off_field"], field, None)
+                           for r in loops) if v is not None]
+        if not got:
+            lines.append(f"    {field}: not extractable on any loop")
+            continue
+        lines.append(f"    {field}: median {np.median(got):+.3g}{unit}, "
+                     f"range [{min(got):+.3g}, {max(got):+.3g}]{unit}, "
+                     f"n={len(got)}/{len(loops)}")
+    return "\n".join(lines)
+
+
+def _trail_block(decisions, recs) -> str:
+    """What was asked for, in order, and what it produced. build_decision_digest omits
+    this on purpose — decide reasons fresh — but the campaign narrative lives here."""
+    produced = {}
+    for r in recs:
+        produced.setdefault(r.get("decision_index"), []).append(r)
+
+    lines = []
+    for i, d in enumerate(decisions):
+        what = ({"scan": f"scan/{d.frame_action}",
+                 "loop": f"loop {d.target_criterion}/{d.target_strategy}"}
+                .get(d.action, "stop"))
+        made = ", ".join(f"Scan_{r['scan_index']}" if r["kind"] == "image"
+                         else f"loop on Scan_{r['scan_index']} px{tuple(r['pixel_yx'])}"
+                         for r in produced.get(i, []))
+        lines.append(f"  D{i:02d} {what} -> {made or 'nothing'}\n      {d.reasoning}")
+    return "\n".join(lines)
+
+
+def _coverage_line(scans) -> str:
+    """Where the campaign actually looked — a real limitation once relocate moves the
+    frame, and invisible from any single scan block."""
+    fr = [s["instrument_params"].scan_settings for s in scans]
+    xs = [f.x_scan_center_m for f in fr]
+    ys = [f.y_scan_center_m for f in fr]
+    hw = [f.scan_size_m / 2 for f in fr]
+    return (f"  {len(scans)} scan(s) spanning "
+            f"x [{min(x-h for x, h in zip(xs, hw))*1e6:+.2f}, "
+            f"{max(x+h for x, h in zip(xs, hw))*1e6:+.2f}] um, "
+            f"y [{min(y-h for y, h in zip(ys, hw))*1e6:+.2f}, "
+            f"{max(y+h for y, h in zip(ys, hw))*1e6:+.2f}] um")
+
+
+def build_summary_digest(state, patch=3) -> str:
+    """The decision digest plus what only matters once the run is over: where it
+    looked, the decision trail, and the pooled loop statistics. No CRITERIA trailer —
+    nothing is being chosen next."""
+    recs      = state.get("experimental_records", [])
+    scans     = [r for r in recs if r["kind"] == "image"]
+    loops     = [r for r in recs if r["kind"] == "loop"]
+    decisions = state.get("decision_records", [])
+    tasks     = state.get("experiment_tasks", [])
+
+    def loops_of(s):
+        return [r for r in loops if r["scan_index"] == s["scan_index"]]
+
+    parts = ["TASKS:\n  - " + "\n  - ".join(tasks) if tasks else "TASKS: (none given)",
+             "",
+             "CAMPAIGN",
+             _coverage_line(scans) if scans else "  no scans",
+             f"  {len(loops)} loop(s) over {len(decisions)} decision(s)",
+             "",
+             "DECISION TRAIL (what was asked, and what it produced)",
+             _trail_block(decisions, recs),
+             "",
+             "LOOP POPULATION (all scans pooled; off-field parameters)",
+             _population_block(loops),
+             "",
+             "MEASURED RESULTS",
+             ""]
+    return "\n".join(parts) + "\n\n".join(_scan_block(s, loops_of(s), patch) for s in scans)

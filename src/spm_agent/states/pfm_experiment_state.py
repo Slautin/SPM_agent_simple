@@ -2,6 +2,8 @@ from spm_agent.schemas.scanner_calibrations import ScannerCalibrations
 from spm_agent.schemas.instrument import InstrumentState
 from spm_agent.schemas.experimental_decision import ExperimentDecision
 from spm_agent.schemas.scan_plan import ScanPlan
+from spm_agent.schemas.loop_plan import LoopPlan
+from spm_agent.schemas.experiment_summary import ExperimentSummary
 
 from spm_agent.states.image_analysis_state import AnalysisState
 
@@ -13,7 +15,7 @@ class PendingMeasurement(TypedDict):
     file_path filled by acquisition, consumed and cleared by analysis."""
     kind: Literal["scan", "loop"]              # intent — what was ordered
     decision_index: int                        # which decision ordered it
-    params: NotRequired[ScanPlan]
+    params: NotRequired[ScanPlan | LoopPlan]
     pixel_yx: NotRequired[tuple[int, int]]     # loops: where (from pick)
     file_path: NotRequired[str]                # set by acquisition
     
@@ -45,6 +47,8 @@ class PFMExperimentState(TypedDict):
     experimental_records: NotRequired[list[ExperimentalRecord]]  # append-only history
     decision_records: NotRequired[list[ExperimentDecision]]
     pending: NotRequired[PendingMeasurement | None]
+
+    experiment_summary: NotRequired[ExperimentSummary]
 
     
     #next_point_yx: NotRequired[tuple[int, int]] #not required, next point in px for the loop acquiring

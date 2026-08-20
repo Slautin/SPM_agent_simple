@@ -21,7 +21,7 @@ SCIFIREADERS_MCP_COMMAND = str(_scifi_cmd)
 SPM_MCP_SERVER_CONFIG = {
         "spm": {
             "transport": "streamable-http",
-            "url": "http://10.46.217.255:8000/mcp"#"http://10.128.35.95:8000/mcp",
+            "url": "http://10.46.218.25:8000/mcp"#"http://10.128.35.95:8000/mcp",
         },
     }
 
@@ -44,19 +44,22 @@ SEG_MAX_SUPERSTEPS = 40 #for the importance map: SEG_MAX_SUPERSTEPSx2
 CHAN_MODEL      = "claude-sonnet-4-6"   # ablation arm; was ChatOpenAI("gpt-5.4")
 CHAN_MAX_TOKENS = 4096
 
+SUMMARY_MODEL      = "claude-sonnet-4-6"
+SUMMARY_MAX_TOKENS = 8192
+
 
 #decision loop
-MAX_TOTAL_DECISIONS = 4      # hard safety cap, never reached in a sane experiment
+MAX_TOTAL_DECISIONS = 25      # hard safety cap, never reached in a sane experiment
 
 #scanning bounds
 LOCKED_SCAN_ALWAYS = ("x_scan_center_m", "y_scan_center_m")   # location is never the plan's
-LOCKED_SCAN_HOLD   = ("scan_size_m",)                         # hold additionally freezes size
+LOCKED_SCAN_FRAME  = ("scan_size_m",)                         # hold/relocate freeze size too
 LOCKED_EXC_ALWAYS  = ("drive_frequency_hz",)                  # set by the probe tune
 
 LOCK_REASON = {
     "x_scan_center_m":    "the frame centre is computed, never proposed",
     "y_scan_center_m":    "the frame centre is computed, never proposed",
-    "scan_size_m":        "frame_action='hold' keeps the current frame",
+    "scan_size_m":        "this frame_action carries the current frame size over",
     "drive_frequency_hz": "it is set by the probe tune, not by the plan",
 }
 
@@ -69,12 +72,29 @@ SCAN_BOUNDS = {              # command limits; the instrument read-models carry 
     "dart_igain":        (50.0, 1500.),
     "scan_size_m":       (1.0e-7, 3.0e-5),
 }
+MIN_ZOOM_FACTOR = 1.25
+
+
+LOOP_BOUNDS = {          # v_dc_max is the one bound with physical risk: dielectric
+    "v_dc_max_v":       (1.0, 8.0),      # breakdown and tip wear scale with it
+    "frequency_hz":     (0.1, 1.0),
+    "var0_phase":       (0., 1.),
+    "var1_pulsetime_s": (1.0e-3, 0.1),
+    "n_cycles":        (1, 3),
+}
 
 #loop point picking
 PICK_PATCH_PX          = 3      # neighbourhood a single measurement effectively samples
 PICK_BORDER_PX         = 5      # frame edge is not measurable
 PICK_PENALTY_RADIUS_PX = 5     # keep loops apart
 PICK_PENALTY_FLOOR     = 0.05   # residual desirability at an already-measured pixel
+
+#pixel <-> scan-frame geometry
+IMAGE_ROW0_AT_TOP = True     # row 0 of the array is the +y edge of the frame — UNVERIFIED
+MOVE_TOLERANCE_PX = 1.0      # achieved-vs-requested must land within this many pixels
+
+#frame relocation
+SCAN_TRAVEL_LIMIT_M = 40.0e-6   # |centre| + size/2 must stay inside this, in x and y
 
 #sandbox
 from spm_agent.sandbox import sandbox_python

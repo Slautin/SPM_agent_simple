@@ -8,9 +8,11 @@ from spm_agent.utils.decision_utils import build_decision_digest
 from spm_agent.prompts.decision_prompt import build_decision_system_message
 from spm_agent.config import MAX_TOTAL_DECISIONS
 
+GUARD_UNDERSTANDING = "(deterministic guard)"
+
 def _guard_decision(action, frame_action, why):
     return ExperimentDecision(
-        understanding="(deterministic guard)",
+        understanding=GUARD_UNDERSTANDING,
         open_questions="",
         action=action,
         frame_action=frame_action,

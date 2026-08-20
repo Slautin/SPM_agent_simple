@@ -11,6 +11,14 @@ class ScanSettings(BaseModel, frozen=True):
     pixels: int = Field(description="Number of pixels (per side) in the scan frame")
     scan_rate_hz: float = Field(description="Scan acquisition rate in Hz, i.e. number of lines per second")
 
+class LoopSettings(BaseModel, frozen=True):
+    """SS-PFM switching-waveform parameters (the hysteresis loop drive)."""
+    v_dc_max_v: float = Field(description="Peak DC switching bias of the loop, volts")
+    frequency_hz: float = Field(description="Loop (triangular sweep) frequency, Hz")
+    var0_phase: float = Field(description="Phase offset of the switching waveform, part of the period (0.0-1.0)")
+    var1_pulsetime_s: float = Field(description="Duration of one bias pulse step, s")
+    n_cycles: int = Field(description="Number of switching cycles in one loop measurement.")
+
 class ProbePosition(BaseModel, frozen=True):
     x_m: float = Field(description="X position of the probe in meters, same coordinate system as the 'ScanSettings.x_scan_center_m' and 'ScanSettings.y_scan_center_m' fields")
     y_m: float = Field(description="Y position of the probe in meters, same coordinate system as the 'ScanSettings.x_scan_center_m' and 'ScanSettings.y_scan_center_m' fields")
@@ -27,6 +35,7 @@ class ContactFeedback(BaseModel, frozen=True):
 
 class InstrumentState(BaseModel, frozen=True):
     scan_settings: ScanSettings
+    loop_settings: LoopSettings
     probe_position: ProbePosition
     pfm_excitation: PFMExcitation
     contact_feedback: ContactFeedback
@@ -57,6 +66,14 @@ def to_instrument_state(
         scan_rate_hz = state_dict['scan_rate_hz'],
     )
 
+    loop_settings = LoopSettings(
+        v_dc_max_v       = state_dict["v_dc_max"],
+        frequency_hz     = state_dict["loop_frequency"],
+        var0_phase       = state_dict["var0_loop_phase"],
+        var1_pulsetime_s = state_dict["var1_pulsetime_s"],
+        n_cycles         = state_dict["n_cycles"],
+    )
+
     pfm_excitation = PFMExcitation(
         drive_amplitude_v = state_dict["v_ac_v"],
         drive_frequency_hz = state_dict['f_dart_hz'],
@@ -71,6 +88,7 @@ def to_instrument_state(
     
     return InstrumentState(
         probe_position = probe_position,
+        loop_settings = loop_settings,
         scan_settings = scan_settings,
         pfm_excitation = pfm_excitation,
         contact_feedback = contact_feedback,
