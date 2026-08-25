@@ -9,10 +9,10 @@ LOOP_REVIEW_SYSTEM_PROMPT = (
     "loops with the extracted values drawn on top.\n\n"
     "Your tasks:\n"
     "- Verify the numbers against the images\n"
-    "- Classify loop quality and decide whether the off-field response indicates "
-    "true ferroelectric switching (the on-field loop may contain an electrostatic "
-    "contribution - use it for comparison, not as switching evidence).\n"
-    "- Give a short physical interpretation (imprint sign, loop opening, asymmetry).\n\n"
+    "- Classify loop quality and determine whether the observed response can be reliably "
+    "attributed to true ferroelectric switching or is more consistent with electrostatic, "
+    "noise-related, or other artifacts.\n"
+    "- Give a short physical interpretation.\n\n"
     "Rules: base every claim on the provided data; list concrete issues."
 )
 
