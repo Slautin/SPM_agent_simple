@@ -19,6 +19,26 @@ class ScanPlan(BaseModel, frozen=True):
         description="2-3 sentences: why each changed value follows from the diagnosis "
                     "and from what the decision asked for")
 
+def enforce_locks(plan: ScanPlan, live: InstrumentState, frame_action: str) -> ScanPlan:
+    """Overwrite every locked field with the live value.
+
+    The plan may not move these, so *rejecting* it when the model restates them
+    imprecisely is a constraint the model cannot satisfy — the human message shows
+    the centre at .3f um (1 nm quantum), the size at .2f um (10 nm) and f_DART at
+    .1f kHz (100 Hz), while validate_plan compares at rel_tol=1e-6. The model has
+    never been shown the exact value. Enforce instead of reject: whatever it 'chose'
+    for a locked field was never going to be used anyway.
+
+    frame_action still decides WHAT is locked — scan_size_m is free under a zoom, so
+    zoom plans pass through untouched and validate_plan keeps policing MIN_ZOOM_FACTOR."""
+    lock_scan, lock_exc = locked_fields(frame_action)
+    return plan.model_copy(update={
+        "scan_settings":  plan.scan_settings.model_copy(
+            update={f: getattr(live.scan_settings, f) for f in lock_scan}),
+        "pfm_excitation": plan.pfm_excitation.model_copy(
+            update={f: getattr(live.pfm_excitation, f) for f in lock_exc}),
+    })
+
 def validate_plan(plan: ScanPlan, live: InstrumentState,
                   frame_action: str, rel_tol: float = 1e-6) -> list[str]:
     errors: list[str] = []

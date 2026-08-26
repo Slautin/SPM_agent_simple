@@ -21,7 +21,7 @@ SCIFIREADERS_MCP_COMMAND = str(_scifi_cmd)
 SPM_MCP_SERVER_CONFIG = {
         "spm": {
             "transport": "streamable-http",
-            "url": "http://10.46.218.25:8000/mcp"#"http://10.128.35.95:8000/mcp",
+            "url": "http://10.46.218.74:8000/mcp"#"http://10.128.35.95:8000/mcp",
         },
     }
 

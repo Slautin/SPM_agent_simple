@@ -6,8 +6,10 @@ from spm_agent.config import SEG_MODEL, SEG_MAX_TOKENS, decisions_dir
 from spm_agent.prompts.scan_plan_prompt import (
     build_scan_plan_system_message, build_scan_plan_human_message)
 from spm_agent.schemas.scan_plan import (
-    ScanPlan, validate_plan, plan_diff, locked_fields)
+    ScanPlan, validate_plan, plan_diff, locked_fields, enforce_locks)
 from spm_agent.states.pfm_experiment_state import PFMExperimentState
+
+from math import isclose
 
 MAX_PLAN_RETRIES = 2
 
@@ -18,6 +20,8 @@ def _archive(plan: ScanPlan, decision_index: int) -> None:
     d = decisions_dir() / f"decision_{decision_index:02d}"
     d.mkdir(parents=True, exist_ok=True)
     (d / "scan_plan.json").write_text(plan.model_dump_json(indent=2), encoding="utf-8")
+
+
 
 async def scan_plan_node(state: PFMExperimentState) -> PFMExperimentState:
     """Choose HOW WELL to measure the next scan — and, when frame_action allows it,
@@ -55,8 +59,23 @@ async def scan_plan_node(state: PFMExperimentState) -> PFMExperimentState:
     messages = [system, human]
     plan, errors = None, ["no plan produced"]
     for _ in range(MAX_PLAN_RETRIES + 1):
-        plan = await structured.ainvoke(messages)
-        errors = validate_plan(plan, live, decision.frame_action)        # type: ignore
+        raw    = await structured.ainvoke(messages)
+        plan   = enforce_locks(raw, live, decision.frame_action)
+        errors = validate_plan(plan, live, decision.frame_action)      # type: ignore
+
+        # Locked fields the model moved by MORE than the prompt's display rounding
+        # (.3f um / .2f um / .1f kHz). Rounding is expected and stays silent; a real
+        # disagreement — proposing a resize under 'hold', say — is worth seeing,
+        # because its reasoning is about to be archived as if it had happened.
+        moved = [f for obj, ref, fields in
+                     ((raw.scan_settings,  live.scan_settings,  lock_scan),
+                      (raw.pfm_excitation, live.pfm_excitation, lock_exc))
+                 for f in fields
+                 if not isclose(getattr(obj, f), getattr(ref, f),
+                                rel_tol=1e-3, abs_tol=1e-9)]
+        if moved:
+            print(f"[scan_plan] IGNORED — plan tried to change locked {moved}; "
+                  f"its reasoning may not match the archived plan")
         if not errors:
             break
         print(f"[scan_plan] rejected: {errors}")

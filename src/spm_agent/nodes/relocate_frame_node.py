@@ -50,7 +50,7 @@ async def relocate_frame_node(state: PFMExperimentState) -> PFMExperimentState:
           f"away, borders touching; skipped {rejected['explored']} explored, "
           f"{rejected['out_of_range']} out of range")
 
-    await call("pfm_set_scan_center", {"x_offset": float(x_m), "y_offset": float(y_m)})
+    await call("pfm_set_scan_center", {"x_offset_m": float(x_m), "y_offset_m": float(y_m)})
 
     out = await sync_status_node(state)          # calibration-freshness guard + readback
     got = out["instrument_state"].scan_settings                          # type: ignore

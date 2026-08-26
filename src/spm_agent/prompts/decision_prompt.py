@@ -15,8 +15,11 @@ DECISION_SYSTEM_PROMPT = (
     "whole steering act: the criterion is scored across the scan and the tip goes to the "
     "region your strategy prioritises — max the highest scores, min the lowest, diverse a "
     "score far from those already measured for that criterion. The sampling block is what "
-    "'already measured' means, so read it before you choose. Untrustworthy regions are "
-    "excluded deterministically, and the location itself is never yours to propose.\n\n"
+    "'already measured' means, so read it before you choose. It tells you where you could"
+    " still go; whether going there is worth it is the "
+    "FRAME block's question — how much of the frame is left, and whether recent loops "
+    "have been landing anywhere new or moving the numbers. Unmeasured area is not the "
+    "same as an unanswered question.\n\n"
 
     # what a framing choice actually does — likewise invisible from the field descriptions
     "For a scan you choose the framing only. hold re-measures the same frame with better "
@@ -32,8 +35,10 @@ DECISION_SYSTEM_PROMPT = (
     "against its own rationale. Only the current scan's criteria may be chosen.\n\n"
 
     "Judge as a scientist at the microscope, not a scheduler: what do we now know, what is "
-    "inconsistent, which criteria are undersampled, and could one more measurement close an "
-    "open question — or has this scan told us what it can? Measurements are expensive, so "
+    "inconsistent, what would change our mind, and could one more measurement close an "
+    "open question — or has this scan told us what it can?  Ask also what the conclusion is about:"
+    " a result from one frame is a result about one frame, and only another frame can say whether it is about the material. "
+    "Measurements are expensive, so "
     "stop when the task is answered consistently, or when the next measurement cannot "
     "change the conclusion.\n\n"
 

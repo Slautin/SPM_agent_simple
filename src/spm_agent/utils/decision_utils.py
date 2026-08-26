@@ -11,6 +11,70 @@ from spm_agent.schemas.experimental_decision import ExperimentDecision
 from typing import get_args
 from spm_agent.schemas.loop_review import LoopReview
 
+from spm_agent.config import PICK_BORDER_PX, PICK_PENALTY_RADIUS_PX
+from spm_agent.utils.pick_utils import border_mask, spatial_penalty
+
+
+def _frame_block(scan, loops, components, patch=3) -> str:
+    """Four lines about the FRAME rather than about a measurement.
+
+    The digest was otherwise entirely loop-shaped — everything that grew with the
+    campaign argued for another loop, and nothing described the frame, so no
+    frame_action could be grounded in anything. 'area' and 'footprint' say what the
+    frame still holds; 'novelty' and 'settled' say whether taking it would add
+    anything. They are meant to be read against each other: a frame can be 95%
+    unvisited and still spent."""
+    h, w = components.shape[1:]
+
+    # measurable = safe and off-border, using the picker's own definitions so the
+    # number means the same thing here as where the point is actually chosen
+    safe = np.ones((h, w), bool)
+    for imap in scan.get("importance_maps", []):
+        p = imap.get("safety_map_path")
+        if p:
+            safe &= np.load(p) > 0.5
+    ok = safe & border_mask((h, w), PICK_BORDER_PX)
+
+    pts   = [tuple(r["pixel_yx"]) for r in loops]
+    fresh = ok & (spatial_penalty((h, w), pts, PICK_PENALTY_RADIUS_PX, 0.0) >= 1.0)
+
+    lines = [f"    area     : {ok.mean():.0%} of the frame is measurable "
+             f"(safety>0.5, off-border); {fresh.sum() / max(ok.sum(), 1):.0%} of that is "
+             f"still further than {PICK_PENALTY_RADIUS_PX} px from any loop"]
+
+    if not loops:
+        return "  FRAME\n" + lines[0] + "\n    no loops on this frame yet"
+
+    ys, xs = [p[0] for p in pts], [p[1] for p in pts]
+    lines.append(f"    footprint: the loops span "
+                 f"{(max(xs)-min(xs)+1)/w:.0%} x {(max(ys)-min(ys)+1)/h:.0%} of the frame")
+
+    if len(loops) >= 3:
+        # how far each loop landed from the NEAREST earlier one, in criterion space
+        # (Chebyshev = new on at least one criterion). A decaying series is the only
+        # thing in the digest that can say "this frame is spent" — the sampling block
+        # never can, since some band is always thin.
+        phi = np.array([_phi(components, y, x, patch) for y, x in pts])
+        nov = [float(np.abs(phi[:i] - phi[i]).max(axis=1).min()) for i in range(1, len(phi))]
+        lines.append(f"    novelty  : first 3 loops {np.mean(nov[:3]):.2f} -> "
+                     f"last 3 {np.mean(nov[-3:]):.2f}  (distance in criterion space to "
+                     f"the nearest earlier loop)")
+
+    if len(loops) >= 5:
+        # does the physics still move when a loop is added?
+        moved = []
+        for f in ("imprint_v", "loop_width_v", "loop_height_m"):
+            v = [getattr(r["loop_params"]["off_field"], f, None) for r in loops]
+            old, all_ = [x for x in v[:-3] if x is not None], [x for x in v if x is not None]
+            if old and len(all_) > 3:
+                iqr = float(np.percentile(all_, 75) - np.percentile(all_, 25)) or 1e-12
+                moved.append(f"{f} {abs(np.median(all_) - np.median(old)) / iqr:.0%}")
+        if moved:
+            lines.append("    settled  : the last 3 loops moved the pooled medians by "
+                         + ", ".join(moved) + " of their IQR")
+
+    return "  FRAME\n" + "\n".join(lines)
+
 def resolve_criterion(decision: ExperimentDecision, names: list[str]) -> str | None:
     """Validated criterion name, or None -> deterministic weighted-map fallback (log it)."""
     if decision.action != "loop":
@@ -129,7 +193,8 @@ def _scan_block(scan, loops, patch=3, current=False):
         sm = imap.get("safety_meta")
         if sm is not None:
             parts.append(f"  safety: {sm.name} — {sm.rationale}")
-
+            
+    parts.append(_frame_block(scan, loops, comps, patch))
     parts.append(_sampling_block(loops, names, comps, patch))
     parts.append(f"  loops ({len(loops)}):")
     parts += [_loop_line(f"{si}.{i}", r, names, comps, patch)
