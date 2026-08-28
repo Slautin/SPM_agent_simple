@@ -1,70 +1,100 @@
 # SPM_agent_simple
 
-A minimal agentic system for running autonomous PFM (Piezoresponse Force Microscopy)
-experiments on a scanning probe microscope. Built on **LangGraph**: an LLM decides
-*what* to measure next (scan / hysteresis loop / stop), while all measurement
-processing, parameter extraction, and map arithmetic stay deterministic — so every
-LLM contribution is separable and benchmarkable.
+A minimal agentic system for autonomous PFM (piezoresponse force microscopy)
+experiments on an Asylum Research AFM. Built on LangGraph. The design rule
+throughout: an LLM decides *what* to measure next — scan, hysteresis loop, or
+stop — while everything numeric (image processing, importance maps, point
+picking, loop parameter extraction) stays deterministic. Each LLM contribution
+is therefore separable and can be benchmarked on its own. Pixel arrays never
+enter LLM context.
 
 ## How it works
 
-````mermaid
+```mermaid
 flowchart LR
-    DEC{{"decide (LLM)"}} -- scan --> AQ["acquire"] --> AN["analysis"]
-    DEC -- loop --> PK["pick point"] --> AQ
-    DEC -- stop --> E([END])
+    P["preflight + calibration + sync"] --> DEC{{"decide (LLM)"}}
+    DEC -- scan --> F["frame: hold / zoom / relocate"] --> SP["scan plan (LLM)"] --> RS["run scan"]
+    DEC -- loop --> PK["pick point (deterministic)"] --> LP["loop plan (LLM)"] --> MT["move tip"] --> RL["run loop"]
+    RS --> AN["analysis"]
+    RL --> AN
     AN --> DEC
-````
+    DEC -- stop --> SUM["summary (LLM)"] --> E([END])
+```
 
-Each cycle: **decide** (Claude, structured output, deterministic guards) →
-**acquire** (SPM MCP server; currently mocked with `.ibw` files) → **analysis**:
+Each decision names an action; for a loop it also names a target criterion and
+a strategy (max / min / diverse). That is the whole steering act — the decision
+never proposes a pixel or a frame center.
 
-- **image** → channel recommendation (GPT, structured) → agentic segmentation
-  (Claude + image-op toolbox) → importance map (Claude coding agent in an
-  isolated Python sandbox; deliverables validated, final map computed deterministically)
-- **loop** → SS-PFM on/off segmentation → hysteresis parameter extraction
-  (deterministic) → loop review (Claude, vision QC)
+**Analysis** (per measurement, one subgraph):
 
-All results accumulate as append-only `ExperimentalRecord`s; the decision node
-sees a deterministic multimodal digest of everything measured so far.
+- *image*: channel recommendation (LLM, structured) → importance-map agent
+  writes scoring code in an isolated Python sandbox. Deliverables are
+  per-criterion maps in 0..1 plus a separate safety map ("is this pixel
+  measurable"); the final map is plain arithmetic, no weights.
+- *loop*: SS-PFM on/off segmentation → hysteresis parameter extraction
+  (deterministic) → loop review (LLM vision QC).
+
+**Point picking** is fully deterministic: criterion map × strategy score ×
+safety × a spatial penalty around already-measured points, with the frame edge
+masked off. Every pick is logged to `decisions/.../pick.json` and is
+reproducible from the archived maps alone.
+
+The decision node sees a deterministic text+image digest of everything measured
+so far; all results accumulate as append-only records under the run folder.
 
 ## Install
 
-````bash
+```bash
 git clone https://github.com/Slautin/SPM_agent_simple.git
 cd SPM_agent_simple
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e .
-python -m spm_agent.sandbox        # one-time: build the isolated code-exec sandbox
-````
+python -m spm_agent.sandbox        # one-time: build the sandbox for LLM-generated code
+```
 
-Create `.env` with `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`.
-Set the instrument MCP URL in `src/spm_agent/config.py` (`SPM_MCP_SERVER_CONFIG`).
+Create `.env` with `ANTHROPIC_API_KEY` (and `OPENAI_API_KEY` if you switch the
+channel model back). Set the instrument MCP URL in `src/spm_agent/config.py`
+(`SPM_MCP_SERVER_CONFIG`). Scan, loop, and picker bounds live in the same file.
 
-## Usage
+## Running an experiment
 
-The current entry point is `notebooks/14_analysis_graph_and_decision.ipynb`:
-set `EXPERIMENT_TASKS` / `EXPERIMENT_CONTEXT`, call `new_run()`, and invoke the
-graph. Artifacts land in `src/runs/<timestamp>/` (segmentation masks, importance
-components + scoring code, loop data + annotated figures, decision digests).
+The entry point is `notebooks/16_scan_decide.ipynb`:
+
+```python
+EXPERIMENT_TASKS   = ["Determine how local domain structure affects polarization switching dynamics."]
+EXPERIMENT_CONTEXT = "DART PFM ... sample description ..."
+
+new_run("my_experiment_tag")
+res = await fin_gr.ainvoke(
+    {"experiment_tasks": EXPERIMENT_TASKS, "experiment_context": EXPERIMENT_CONTEXT})
+```
+
+Everything the run produces lands in `src/runs/<timestamp>_<tag>/`:
+`records/` (one JSON per measurement), `decisions/` (digest, decision, pick),
+`importance/` (maps + the generated scoring code), `loops/` (data + annotated
+figures), `summary/`. A run can be re-analysed offline from this folder alone.
 
 ## Repository layout
 
-````
+```
 src/spm_agent/
-├── config.py           # models, caps, dirs, MCP configs
+├── config.py           # models, bounds, caps, run directories, MCP config
 ├── sandbox.py          # isolated venv for LLM-generated code
 ├── graphs/             # analysis graph (image / loop branches)
-├── nodes/              # LangGraph nodes (one file each)
+├── nodes/              # one LangGraph node per file
 ├── prompts/ schemas/   # prompt builders, Pydantic contracts
 ├── states/ tools/ utils/ mcp/
-notebooks/              # development history; 14 = full experiment loop
-````
+notebooks/              # development history; 16 = the full experiment loop
+```
 
 ## Status
 
-Working end-to-end with mocked acquisition. Not yet wired: real instrument
-acquisition, deterministic point picking with spatial penalty, top-level graph
-in `src/`. See `SYSTEM_REPORT_2026-07-16.md` for full technical details.
-````
-````
+The full closed loop runs on the instrument: scans, LLM decisions, loop
+measurements at deterministically picked points, and an agent-initiated stop
+with a validated summary. A complete PLZT campaign (13 loops, 15 decisions)
+has been run and audited end-to-end.
+
+Known limitations: the decision digest reports per-criterion sampling but not
+joint criterion occupancy, so a criterion combination with no measurable pixels
+can be chased; the picker has no tie-breaking on flat score plateaus; the
+top-level graph still lives in the notebook rather than `src/`.
